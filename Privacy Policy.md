@@ -1,4 +1,4 @@
-<![CDATA[# Privacy Policy
+# Privacy Policy
 
 **Katban** — Chrome Extension  
 **Last Updated:** May 28, 2026
@@ -82,4 +82,4 @@ If this policy is updated, the "Last Updated" date at the top will be revised. C
 If you have any questions about this privacy policy, please contact the developer:
 
 **Shayan Asim**
-]]>
+

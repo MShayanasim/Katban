@@ -1,4 +1,4 @@
-<![CDATA[# 🐱 Katban
+# 🐱 Katban
 
 A cat-themed productivity companion for Chrome. Focus timer, clipboard tracker, and in-page reading assistant — all supervised by a pixelated cat that reacts to everything you do.
 
@@ -99,4 +99,4 @@ See the [Privacy Policy](Privacy%20Policy.md) for full details on data handling.
 Made by **Shayan Asim**.
 
 Dictionary definitions powered by the [Free Dictionary API](https://dictionaryapi.dev/).
-]]>
+
