@@ -43,6 +43,12 @@
   mask-size: 4px 4px !important;
 }
 
+#katban-corner-cat.katban-hovered.katban-peeking {
+  opacity: 1 !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
+
 #katban-corner-cat .k-body,
 #katban-corner-cat .k-tail,
 #katban-corner-cat .k-box,
@@ -258,8 +264,9 @@
   transform: scale(0.65) translateY(12px) rotate(-18deg) !important;
   transform-origin: bottom center !important;
 }
-/* Hide body, tail, tucked paws, box */
+/* Hide body, belly, tail, tucked paws, box */
 #katban-corner-cat.katban-peeking .k-body,
+#katban-corner-cat.katban-peeking .k-belly,
 #katban-corner-cat.katban-peeking .k-tail,
 #katban-corner-cat.katban-peeking .k-tucked-paws,
 #katban-corner-cat.katban-peeking .k-box {
@@ -523,24 +530,62 @@
 /* ── Judgement toast ── */
 #katban-judge-toast {
   position: fixed !important;
-  bottom: 82px !important;
-  right: 20px !important;
+  bottom: 95px !important;
+  right: 30px !important;
   z-index: 2147483647 !important;
-  background: #1e1e1e !important;
-  color: #f0f0f0 !important;
-  border: 1px solid #c4a87a !important;
-  padding: 6px 10px !important;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
-  font-size: 11px !important;
+  
+  /* Cloud / Thought bubble appearance */
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 3px solid #000000 !important;
+  border-radius: 40px !important;
+  padding: 16px 20px !important;
+  box-shadow: 4px 4px 0px #000000 !important;
+  
+  /* Pixelated Text */
+  font-family: 'Press Start 2P', 'Courier New', Courier, monospace !important;
+  font-weight: 800 !important;
+  font-size: 13px !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  line-height: 1.3 !important;
+  -webkit-font-smoothing: none !important;
+  font-smooth: never !important;
+  
   opacity: 0 !important;
   transition: opacity 0.25s ease !important;
   pointer-events: none !important;
-  max-width: 180px !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
+  max-width: 200px !important;
 }
 #katban-judge-toast.katban-visible {
   opacity: 1 !important;
+}
+
+/* Thought Bubble trailing circles */
+#katban-judge-toast::before {
+  content: '' !important;
+  position: absolute !important;
+  bottom: -15px !important;
+  right: 40px !important;
+  width: 14px !important;
+  height: 14px !important;
+  background: #ffffff !important;
+  border: 3px solid #000000 !important;
+  border-radius: 50% !important;
+  box-shadow: 2px 2px 0px #000000 !important;
+}
+
+#katban-judge-toast::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: -30px !important;
+  right: 20px !important;
+  width: 8px !important;
+  height: 8px !important;
+  background: #ffffff !important;
+  border: 3px solid #000000 !important;
+  border-radius: 50% !important;
+  box-shadow: 2px 2px 0px #000000 !important;
 }
 
 /* ── Blocker overlay ── */
@@ -548,36 +593,156 @@
   position: fixed !important;
   inset: 0 !important;
   z-index: 2147483646 !important;
-  background: #111 !important;
+  background: radial-gradient(circle at center, #242831 0%, #11141a 100%) !important;
   display: none !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 20px !important;
 }
+
 #katban-blocker.katban-active {
   display: flex !important;
+  animation: katban-block-fade 0.2s ease-out forwards !important;
 }
-#katban-blocker svg {
-  width: 100px !important;
-  height: 100px !important;
+
+@keyframes katban-block-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
-#katban-blocker h1 {
-  color: #f0f0f0 !important;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
-  font-size: 22px !important;
-  font-weight: 300 !important;
-  letter-spacing: 0.1em !important;
-  margin: 0 !important;
+
+.katban-blocker-content {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
   text-align: center !important;
-  border: none !important;
-}
-#katban-blocker p {
-  color: #555 !important;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
-  font-size: 13px !important;
+  transform: translateY(20px) !important;
+  animation: katban-block-slide 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
+  z-index: 2 !important;
+  width: 100% !important;
+  padding: 0 !important;
   margin: 0 !important;
-  border: none !important;
+}
+
+@keyframes katban-block-slide {
+  to { transform: translateY(0); }
+}
+
+.katban-dvd-cat {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  width: 140px !important;
+  height: 140px !important;
+  animation: katban-dvd-x 7s linear infinite alternate, katban-dvd-y 5.3s linear infinite alternate !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+}
+
+.katban-dvd-cat svg {
+  width: 100% !important;
+  height: 100% !important;
+  animation: katban-dvd-spin 4s linear infinite !important;
+  margin: 0 !important;
+  left: 0 !important;
+  transform-origin: 75% 80% !important;
+}
+
+@keyframes katban-dvd-x {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(calc(100vw - 140px)); }
+}
+
+@keyframes katban-dvd-y {
+  0%   { top: 0; }
+  100% { top: calc(100vh - 140px); }
+}
+
+@keyframes katban-dvd-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Hide all extra states from blocker cat */
+#katban-blocker .k-sleep-zs,
+#katban-blocker .k-scanner-rays,
+#katban-blocker .k-mouth-scared,
+#katban-blocker .k-mouth-surprised,
+#katban-blocker .k-mouth-exhausted,
+#katban-blocker .k-mouth-smirk,
+#katban-blocker .k-mouth-smile,
+#katban-blocker .k-paws,
+#katban-blocker .k-pose-loaf,
+#katban-blocker .k-pose-run1,
+#katban-blocker .k-pose-run2,
+#katban-blocker .k-pose-reach,
+#katban-blocker .k-pose-climb,
+#katban-blocker .k-box-front,
+#katban-blocker .k-box-back {
+  opacity: 0 !important;
+}
+
+#katban-blocker .k-pose-knife {
+  opacity: 1 !important;
+}
+
+@keyframes katban-menace {
+  0%, 100% { transform: translate(68px, 98px) rotate(10deg); }
+  50% { transform: translate(68px, 92px) rotate(-10deg); }
+}
+
+#katban-blocker .k-knife-paw {
+  animation: katban-menace 1.5s ease-in-out infinite !important;
+}
+
+#katban-blocker svg {
+  width: 180px !important;
+  height: 180px !important;
+  margin-bottom: 20px !important;
+  filter: drop-shadow(0 20px 25px rgba(255,0,0,0.15)) !important;
+  overflow: visible !important;
+  transform: translateX(-45px) !important; /* Counteract the 45px internal rightward bias in the 180px SVG */
+}
+
+/* Make blocker cat ANGRY by default */
+#katban-blocker .k-ear-l { transform: rotate(-35deg) translateY(6px) !important; transform-origin: bottom center !important; transform-box: fill-box !important; }
+#katban-blocker .k-ear-r { transform: rotate(35deg) translateY(6px) !important; transform-origin: bottom center !important; transform-box: fill-box !important; }
+#katban-blocker .k-mouth-angry { opacity: 1 !important; }
+#katban-blocker .k-pupil { fill: #ff0000 !important; transform: scale(0.3, 1.8) !important; transform-origin: center !important; transform-box: fill-box !important; filter: drop-shadow(0 0 5px #ff0000) !important; }
+#katban-blocker #blk-shine-l, #katban-blocker #blk-shine-r { opacity: 0 !important; }
+
+#katban-blocker h1 {
+  display: block !important;
+  color: #ffffff !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  font-size: 38px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  margin: 0 auto 10px auto !important;
+  padding: 0 !important;
+  text-align: center !important;
+  text-transform: none !important;
+  text-shadow: none !important;
+  text-indent: 0 !important;
+  width: auto !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+#katban-blocker p {
+  display: block !important;
+  color: #94a3b8 !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.15em !important;
+  text-align: center !important;
+  text-indent: 0 !important;
+  width: auto !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 /* ── Cat Styles ── */

@@ -79,7 +79,9 @@
     <p class="cat-status" id="cat-status">Idle</p>
   </div>
 
-  <!-- ── Pomodoro Section ── -->
+  <div class="tab-container">
+    <!-- ── Home / Timer Tab ── -->
+    <div class="tab-content active" id="tab-home">
   <section class="section" id="pomodoro-section">
     <div class="section-header">
       <span class="section-label">FOCUS TIMER</span>
@@ -97,17 +99,76 @@
       <button class="btn btn-ghost btn-sm" id="btn-save-sites">Save</button>
     </div>
   </section>
-
-  <!-- ── Clipboard Section ── -->
-  <section class="section" id="clipboard-section">
-    <div class="section-header">
-      <span class="section-label">CLIPBOARD HISTORY</span>
-      <button class="btn btn-ghost btn-sm" id="btn-clear-history">Clear</button>
+  </div>
+    
+    <!-- ── Tasks Tab ── -->
+    <div class="tab-content" id="tab-tasks">
+      <div class="section">
+        <div class="section-header">
+          <span class="section-label">TO-DO LIST</span>
+        </div>
+        <div class="task-input-wrap">
+          <input type="text" id="new-task-input" class="text-input" placeholder="Add a new task..." maxlength="60">
+          <button class="btn btn-primary btn-sm" id="btn-add-task">+</button>
+        </div>
+        <ul class="task-list" id="task-list">
+          <li class="clip-empty">All caught up!</li>
+        </ul>
+      </div>
     </div>
-    <ul class="clipboard-list" id="clipboard-list">
-      <li class="clip-empty">Nothing copied yet.</li>
-    </ul>
-  </section>
+    
+    <!-- ── Stats Tab ── -->
+    <div class="tab-content" id="tab-stats">
+      <div class="section">
+        <div class="section-header">
+          <span class="section-label">FOCUS STATS</span>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-value" id="stat-today">0</div>
+            <div class="stat-label">Today (min)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="stat-week">0</div>
+            <div class="stat-label">This Week</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="stat-month">0</div>
+            <div class="stat-label">This Month</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Clipboard Tab ── -->
+    <div class="tab-content" id="tab-clipboard">
+      <div class="section" id="clipboard-section">
+        <div class="section-header">
+          <span class="section-label">CLIPBOARD HISTORY</span>
+          <button class="btn btn-ghost btn-sm" id="btn-clear-history">Clear</button>
+        </div>
+        <ul class="clipboard-list" id="clipboard-list">
+          <li class="clip-empty">Nothing copied yet.</li>
+        </ul>
+      </div>
+    </div>
+  </div> <!-- End tab-container -->
+
+  <!-- ── Bottom Navigation ── -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" data-target="tab-home" title="Home">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+    </button>
+    <button class="nav-btn" data-target="tab-tasks" title="Tasks">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+    </button>
+    <button class="nav-btn" data-target="tab-stats" title="Stats">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+    </button>
+    <button class="nav-btn" data-target="tab-clipboard" title="Clipboard">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+    </button>
+  </div>
 
   <!-- ── Settings Overlay ── -->
   <div class="settings-overlay" id="settings-overlay">
@@ -150,13 +211,18 @@
           <option value="pink">Pink</option>
           <option value="black">Black</option>
           <option value="orange">Orange</option>
-          <option value="custom-tabby">Custom Tabby</option>
+          <option value="custom-tabby">Billo &lt;3</option>
         </select>
       </div>
     </div>
   </div>
 
-  <footer class="made-by">Made by Shayan Asim</footer>
+  <footer class="made-by">
+    <div class="cat-fact-wrap" title="Daily Cat Fact">
+      <span id="cat-fact">Loading fact...</span>
+    </div>
+    Made by Shayan Asim · <a href="https://github.com/MShayanasim/Katban/blob/main/Privacy.md" class="privacy-link" id="privacy-link">Privacy Policy</a>
+  </footer>
 
   <script src="popup.js"></script>
 </body>

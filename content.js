@@ -11,8 +11,12 @@
   // Dispatch event to kill any existing old script before initializing
   document.dispatchEvent(new CustomEvent('katban-unload-old'));
 
-  if (window.__katbanInjected) return;
-  window.__katbanInjected = true;
+  try {
+    if (window.__katbanInjected) return;
+    window.__katbanInjected = true;
+  } catch (e) {
+    // Some pages freeze the window object; proceed anyway
+  }
 
   let isInvalidated = false;
 
@@ -100,6 +104,17 @@
             <line x1="45" y1="85" x2="35" y2="105" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
             <line x1="55" y1="80" x2="45" y2="110" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
           </g>
+
+          <!-- 6. Knife Pose -->
+          <g class="k-pose k-pose-knife" opacity="0">
+            <!-- Puffed up angry bottlebrush tail -->
+            <path class="k-tail" d="M 85 95 C 100 90, 110 70, 110 40 L 115 30 L 100 35 L 105 20 L 90 30 L 90 15 L 80 30 L 70 20 L 75 40 C 75 60, 75 85, 85 95 Z" fill="var(--cat-main, #c8c8c8)" stroke="var(--cat-stroke, #777)" stroke-width="2" stroke-linejoin="round"/>
+            <ellipse class="k-body" cx="50" cy="95" rx="38" ry="18" fill="var(--cat-main, #c8c8c8)" stroke="var(--cat-stroke, #777)" stroke-width="2"/>
+            <ellipse class="k-belly" cx="50" cy="96" rx="34" ry="14" fill="var(--cat-belly, transparent)" stroke="none"/>
+            <g class="k-tucked-paws">
+              <ellipse cx="38" cy="108" rx="8" ry="5" fill="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke="var(--cat-stroke, #777)" stroke-width="1.5"/>
+            </g>
+          </g>
         </g>
 
         <!-- === HEAD GROUP === -->
@@ -144,6 +159,7 @@
           <ellipse class="k-mouth-exhausted" cx="50" cy="77" rx="3" ry="5" fill="var(--cat-pupil, #333)" opacity="0"/>
           <path class="k-mouth-exhausted k-exhausted-breath" d="M 52 77 Q 64 70 70 78 Q 65 88 52 81 Z" fill="#b0d4ff" opacity="0"/>
           <path class="k-mouth-smirk" d="M 42 74 Q 46 80 50 76 Q 54 80 58 74" stroke="var(--cat-stroke, #777)" stroke-width="1.8" fill="none" stroke-linecap="round" opacity="0"/>
+          <path class="k-mouth-angry" d="M 45 77 Q 50 73 55 77 L 53 82 Q 50 84 47 82 Z" fill="#aa0000" stroke="#330000" stroke-width="1" opacity="0"/>
 
           <line x1="12" y1="66" x2="28" y2="68" stroke="var(--cat-whiskers, #999)" stroke-width="1"/>
           <line x1="10" y1="72" x2="28" y2="72" stroke="var(--cat-whiskers, #999)" stroke-width="1"/>
@@ -156,6 +172,19 @@
           <text class="k-z1" x="75" y="40" fill="var(--cat-stroke, #777)" font-family="sans-serif" font-weight="bold" font-size="16">Z</text>
           <text class="k-z2" x="90" y="25" fill="var(--cat-stroke, #777)" font-family="sans-serif" font-weight="bold" font-size="12">z</text>
           <text class="k-z3" x="100" y="15" fill="var(--cat-stroke, #777)" font-family="sans-serif" font-weight="bold" font-size="9">z</text>
+        </g>
+
+        <!-- Knife overlay (renders on top of head) -->
+        <g class="k-pose-knife" opacity="0">
+          <g class="k-knife-paw" transform="translate(68, 98) rotate(10)">
+            <!-- Knife Handle -->
+            <rect x="-4" y="-20" width="8" height="22" rx="2" fill="#5c3a21" stroke="#222" stroke-width="1.5"/>
+            <!-- Knife Blade -->
+            <path d="M -5 -20 L -8 -65 L 0 -75 L 5 -20 Z" fill="#e2e8f0" stroke="#334155" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M -8 -65 L 0 -75 L -1 -20 L -5 -20 Z" fill="#cbd5e1" stroke="none"/>
+            <!-- Paw overlapping handle -->
+            <ellipse cx="0" cy="0" rx="9" ry="7" fill="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke="var(--cat-stroke, #777)" stroke-width="2"/>
+          </g>
         </g>
       </g>
       
@@ -196,11 +225,9 @@
 
     // Apply cat style to document element
     const style = data.catStyle || 'primary';
-    document.documentElement.className = document.documentElement.className
-      .replace(/\bkatban-style-\S+/g, '')
-      .trim();
-    if (document.documentElement.className !== '') document.documentElement.className += ' ';
-    document.documentElement.className += `katban-style-${style}`;
+    const oldStyles = [...document.documentElement.classList].filter(c => c.startsWith('katban-style-'));
+    oldStyles.forEach(c => document.documentElement.classList.remove(c));
+    document.documentElement.classList.add(`katban-style-${style}`);
   }
 
   // Load saved setting
@@ -212,6 +239,7 @@
   // ── SAFE MESSAGE WRAPPER & HOT-RELOAD CLEANUP ──
   const unloadListener = () => {
     isInvalidated = true;
+    if (typeof stopCatSpawner === 'function') stopCatSpawner();
     if (cornerCat) cornerCat.remove();
     const defBubble = document.getElementById('katban-def-bubble');
     if (defBubble) defBubble.remove();
@@ -219,6 +247,8 @@
     if (blocker) blocker.remove();
     const judgeToast = document.getElementById('katban-judge-toast');
     if (judgeToast) judgeToast.remove();
+    const measureSpan = document.getElementById('katban-measure-span');
+    if (measureSpan) measureSpan.remove();
     
     try {
       chrome.runtime.onMessage.removeListener(messageListener);
@@ -427,9 +457,9 @@
       const isInput = t.tagName === 'INPUT' || t.tagName === 'TEXTAREA';
       const isEditable = t.isContentEditable || t.getAttribute('contenteditable') === 'true';
       const isSearchBox = t.getAttribute('role') === 'textbox' || t.getAttribute('role') === 'searchbox';
-      const isShreddit = t.tagName.toLowerCase().includes('search');
+      const isCustomInput = t.tagName.includes('-') && (t.tagName.includes('INPUT') || t.tagName.includes('SEARCH') || t.tagName.includes('EDITOR'));
 
-      if (isInput || isEditable || isSearchBox || isShreddit) {
+      if (isInput || isEditable || isSearchBox || isCustomInput) {
         if (isInput) {
           const excludedTypes = ['submit', 'button', 'checkbox', 'radio', 'hidden', 'color', 'file', 'image', 'range', 'reset'];
           if (excludedTypes.includes(t.type) || t.readOnly || t.disabled) return;
@@ -452,9 +482,9 @@
     const isInput = currentFocus.tagName === 'INPUT' || currentFocus.tagName === 'TEXTAREA';
     const isEditable = currentFocus.isContentEditable || currentFocus.getAttribute('contenteditable') === 'true';
     const isSearchBox = currentFocus.getAttribute('role') === 'textbox' || currentFocus.getAttribute('role') === 'searchbox';
-    const isShreddit = currentFocus.tagName.toLowerCase().includes('search');
+    const isCustomInput = currentFocus.tagName.includes('-') && (currentFocus.tagName.includes('INPUT') || currentFocus.tagName.includes('SEARCH') || currentFocus.tagName.includes('EDITOR'));
     
-    if (!isInput && !isEditable && !isSearchBox && !isShreddit) return false;
+    if (!isInput && !isEditable && !isSearchBox && !isCustomInput) return false;
     
     if (isInput) {
       const excludedTypes = ['submit', 'button', 'checkbox', 'radio', 'hidden', 'color', 'file', 'image', 'range', 'reset'];
@@ -558,15 +588,27 @@
     if (!word || /\s/.test(word)) return;
 
     try {
-      const res  = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+      const controller = new AbortController();
+      const fetchTimeout = setTimeout(() => controller.abort(), 5000);
+      const res  = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`, { signal: controller.signal });
+      clearTimeout(fetchTimeout);
       if (!res.ok) throw new Error();
       const data = await res.json();
       const def  = data?.[0]?.meanings?.[0]?.definitions?.[0]?.definition;
       const pos  = data?.[0]?.meanings?.[0]?.partOfSpeech;
       if (!def) throw new Error();
 
-      defContent.innerHTML =
-        `<strong>${word}${pos ? ` <span style="color:#888;font-weight:normal;text-transform:none">(${pos})</span>` : ''}</strong>${def}`;
+      defContent.textContent = '';
+      const strong = document.createElement('strong');
+      strong.textContent = word;
+      if (pos) {
+        const posSpan = document.createElement('span');
+        posSpan.style.cssText = 'color:#888;font-weight:normal;text-transform:none';
+        posSpan.textContent = ` (${pos})`;
+        strong.appendChild(posSpan);
+      }
+      defContent.appendChild(strong);
+      defContent.appendChild(document.createTextNode(def));
 
       let x = e.clientX + 14;
       let y = e.clientY + 14;
@@ -603,20 +645,45 @@
     if (isInvalidated) return;
     const copied = window.getSelection()?.toString() || '';
     if (!copied) return;
-    safeSend({ type: 'COPY_EVENT', text: copied });
 
-    if (copied.length > 500) {
-      judgeToast.textContent = judgeLines[Math.floor(Math.random() * judgeLines.length)];
-      judgeToast.classList.add('katban-visible');
-      clearTimeout(judgeTimer);
-      judgeTimer = setTimeout(() => {
-        judgeToast.classList.remove('katban-visible');
-      }, 3200);
-    }
+    chrome.storage.local.get(['clipboardHistory'], (data) => {
+      if (chrome.runtime.lastError) return;
+      const history = data.clipboardHistory || [];
+      const isDuplicate = history.some(item => item.text === copied);
+
+      if (isDuplicate) {
+        const dupLines = [
+          'Already got that, human.',
+          'Stop repeating yourself, meow.',
+          'I already memorized that.',
+          'Deja vu? You already copied this.',
+          'I am a cat, not a broken record.'
+        ];
+        judgeToast.textContent = dupLines[Math.floor(Math.random() * dupLines.length)];
+        judgeToast.classList.add('katban-visible');
+        clearTimeout(judgeTimer);
+        judgeTimer = setTimeout(() => {
+          judgeToast.classList.remove('katban-visible');
+        }, 3200);
+        
+        safeSend({ type: 'CAT_EVENT', event: 'SET_STATE', state: 'judging' });
+      } else {
+        safeSend({ type: 'COPY_EVENT', text: copied });
+
+        if (copied.length > 500) {
+          judgeToast.textContent = judgeLines[Math.floor(Math.random() * judgeLines.length)];
+          judgeToast.classList.add('katban-visible');
+          clearTimeout(judgeTimer);
+          judgeTimer = setTimeout(() => {
+            judgeToast.classList.remove('katban-visible');
+          }, 3200);
+        }
+      }
+    });
   });
 
   // ── CAT STATE ────────────────────────────────
-  const ALL_STATES = ['judging', 'sleeping', 'moving', 'peeking', 'on-prop', 'leaving-prop', 'surprised', 'dancing', 'exhausted'];
+  const ALL_STATES = ['judging', 'sleeping', 'peeking', 'on-prop', 'leaving-prop', 'surprised', 'dancing', 'exhausted'];
   
   function applyCatState(state) {
     if (catState === state) return;
@@ -632,9 +699,97 @@
   // ── BLOCKER OVERLAY ──────────────────────────
   const blocker = document.createElement('div');
   blocker.id = 'katban-blocker';
-  blocker.innerHTML = buildCatSVG('blk-') +
-    '<h1>Get Back to Work.</h1><p>Blocked during focus session.</p>';
+  blocker.innerHTML = `
+    <div id="katban-dvd-cat" class="katban-dvd-cat">
+      ${buildCatSVG('dvd-')}
+    </div>
+    <div class="katban-blocker-content">
+      ${buildCatSVG('blk-')}
+      <h1>Get Back to Work.</h1>
+      <p>Blocked during focus session.</p>
+    </div>
+  `;
   document.body.appendChild(blocker);
+
+  // ── DVD CAT SPAWNER ──────────────────────────
+  let cloneInterval = null;
+  let sharedAudioCtx = null;
+
+  function playMeow() {
+    try {
+      if (!sharedAudioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        sharedAudioCtx = new AudioContext();
+      }
+      if (sharedAudioCtx.state === 'suspended') {
+        sharedAudioCtx.resume();
+      }
+      
+      const osc = sharedAudioCtx.createOscillator();
+      const gain = sharedAudioCtx.createGain();
+      
+      // Sawtooth wave for a slightly raspy, angry cat tone
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(500, sharedAudioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(800, sharedAudioCtx.currentTime + 0.1);
+      osc.frequency.exponentialRampToValueAtTime(300, sharedAudioCtx.currentTime + 0.4);
+      
+      gain.gain.setValueAtTime(0, sharedAudioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.05, sharedAudioCtx.currentTime + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, sharedAudioCtx.currentTime + 0.4);
+      
+      osc.connect(gain);
+      gain.connect(sharedAudioCtx.destination);
+      osc.start();
+      osc.stop(sharedAudioCtx.currentTime + 0.4);
+    } catch(e) {
+      // Ignore if browser completely blocks audio creation
+    }
+  }
+
+  function spawnDvdCat() {
+    const newCat = document.createElement('div');
+    newCat.className = 'katban-dvd-cat';
+    newCat.innerHTML = buildCatSVG('dvd-' + Date.now() + Math.random());
+    
+    // Randomize initial position by jumping to a random point in the full animation loop
+    const delayX = -(Math.random() * 14).toFixed(2);
+    const delayY = -(Math.random() * 10.6).toFixed(2);
+    const delaySpin = -(Math.random() * 4).toFixed(2);
+    
+    newCat.style.setProperty('animation-delay', `${delayX}s, ${delayY}s`, 'important');
+    const svg = newCat.querySelector('svg');
+    if (svg) svg.style.setProperty('animation-delay', `${delaySpin}s`, 'important');
+    
+    // Insert behind the content container
+    const content = blocker.querySelector('.katban-blocker-content');
+    if (content) {
+      blocker.insertBefore(newCat, content);
+    } else {
+      blocker.appendChild(newCat);
+    }
+    
+    // Play sound effect
+    playMeow();
+  }
+
+  function startCatSpawner() {
+    if (cloneInterval) return;
+    cloneInterval = setInterval(() => {
+      spawnDvdCat();
+    }, 15000);
+  }
+
+  function stopCatSpawner() {
+    if (cloneInterval) {
+      clearInterval(cloneInterval);
+      cloneInterval = null;
+    }
+    // Remove clones, keep original
+    const extraCats = blocker.querySelectorAll('.katban-dvd-cat:not(#katban-dvd-cat)');
+    extraCats.forEach(c => c.remove());
+  }
 
   // ── MESSAGE LISTENER ─────────────────────────
   const messageListener = (msg) => {
@@ -644,12 +799,14 @@
       if (msg.type === 'BLOCK_PAGE') {
         blocker.classList.add('katban-active');
         cornerCat.classList.add('katban-hidden');
+        startCatSpawner();
       }
 
       if (msg.type === 'TIMER_STATE') {
         if (msg.state !== 'focus') {
           blocker.classList.remove('katban-active');
           cornerCat.classList.toggle('katban-hidden', !pageCatOn);
+          stopCatSpawner();
         }
       }
 
@@ -676,7 +833,27 @@
         }
 
         applyCatState(msg.state);
-        
+
+        // Handle short timeouts locally (moved from service worker)
+        if (msg.state === 'leaving-prop') {
+          setTimeout(() => {
+            if (catState === 'leaving-prop') {
+              safeSend({ type: 'CAT_EVENT', event: 'SET_STATE', state: null });
+              if (hasLocalActiveInput()) {
+                safeSend({ type: 'CAT_EVENT', event: 'SET_STATE', state: 'surprised' });
+              }
+            }
+          }, 1500);
+        }
+
+        if (msg.state === 'judging') {
+          setTimeout(() => {
+            if (catState === 'judging') {
+              safeSend({ type: 'CAT_EVENT', event: 'SET_STATE', state: null });
+            }
+          }, 3200);
+        }
+
         // Keep position synced with peeking locally
         if (msg.state === 'peeking' && activePasswordInput) {
           updateCatPasswordPosition();

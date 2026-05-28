@@ -61,6 +61,7 @@ document.addEventListener('mousemove', (e) => {
   pupils.style.transform = `translate(${ox}px, ${oy}px)`;
 
   // Proximity scared state
+  if (isHappy) return;
   if (dist < 55) {
     setCatState('scared');
   } else if (!currentFocusState) {
@@ -70,7 +71,19 @@ document.addEventListener('mousemove', (e) => {
 
 let currentFocusState = null;
 
+let isHappy = false;
+
 function setCatState(state) {
+  if (state === 'focus') {
+    currentFocusState = 'focus';
+  } else if (state === 'break') {
+    currentFocusState = 'break';
+  } else if (state === 'idle') {
+    currentFocusState = null;
+  }
+
+  if (isHappy) return;
+
   catSvg.className.baseVal = '';          // clear all state classes
   catStatus.className      = 'cat-status';
 
@@ -98,6 +111,18 @@ function setCatState(state) {
       currentFocusState = null;
       break;
   }
+}
+
+function triggerHappyCat() {
+  if (isHappy) return;
+  isHappy = true;
+  catSvg.classList.add('happy');
+  catStatus.textContent = 'Good job!';
+  setTimeout(() => {
+    isHappy = false;
+    catSvg.classList.remove('happy');
+    setCatState(currentFocusState ? currentFocusState : 'idle');
+  }, 1000);
 }
 
 // ── Timer UI ────────────────────────────────────
@@ -131,7 +156,9 @@ function formatElapsed(seconds) {
   return `${m}:${s}`;
 }
 
-function refreshTimerUI(timerState, timeRemaining, isUnlimited) {
+let lastKnownState = null;
+
+function refreshTimerUI(timerState, timeRemaining, isUnlimited, customDur) {
   timerInput.className = 'timer-input';
 
   if (timerState === 'focus') {
@@ -155,31 +182,33 @@ function refreshTimerUI(timerState, timeRemaining, isUnlimited) {
     btnStart.disabled    = true;
     setCatState('break');
   } else {
-    // Idle — only reset the display if user isn't actively editing
-    if (document.activeElement !== timerInput) {
-      // Restore saved custom duration or default
-      chrome.storage.local.get(['customDuration'], (data) => {
-        const dur = data.customDuration;
-        if (dur === -1) {
-          timerInput.value = '-';
-        } else if (dur && dur !== 1500) {
-          timerInput.value = formatTime(dur);
-        } else if (timerInput.value === '∞' || timerInput.classList.contains('unlimited') || timerInput.readOnly) {
-          timerInput.value = '25:00';
-        }
-      });
+    // Idle — only reset the display when transitioning to idle or on first load
+    if (lastKnownState !== 'idle') {
+      const dur = customDur || 1500;
+      if (dur === -1) {
+        timerInput.value = '-';
+      } else {
+        timerInput.value = formatTime(dur);
+      }
     }
     timerInput.readOnly = false;
     btnStart.textContent = 'Start Focus';
     btnStart.disabled    = false;
     setCatState('idle');
   }
+
+  lastKnownState = timerState;
 }
 
 btnStart.addEventListener('click', () => {
   const parsed = parseTimeInput(timerInput.value);
   if (parsed === null || parsed === 0) {
     timerInput.value = '25:00';
+    return;
+  }
+  // Cap at 3 hours (180 minutes)
+  if (parsed !== -1 && parsed > 180 * 60) {
+    timerInput.value = '180:00';
     return;
   }
   // Save the custom duration and tell background
@@ -191,10 +220,26 @@ btnStop.addEventListener('click', () => {
   chrome.runtime.sendMessage({ type: 'STOP_TIMER' });
 });
 
-// Poll storage for timer updates every second while popup is open
+// Poll storage for timer display every second while popup is open
 function pollTimer() {
-  chrome.storage.local.get(['timerState', 'timeRemaining', 'isUnlimited'], (data) => {
-    refreshTimerUI(data.timerState || 'idle', data.timeRemaining ?? 1500, data.isUnlimited === true);
+  chrome.storage.local.get(['timerState', 'endTime', 'startTime', 'isUnlimited', 'customDuration'], (data) => {
+    if (chrome.runtime.lastError) return;
+    const timerState = data.timerState || 'idle';
+    const isUnlimited = data.isUnlimited === true;
+
+    const customDur = data.customDuration;
+
+    if (timerState === 'focus' || timerState === 'break') {
+      if (isUnlimited) {
+        const elapsed = Math.floor((Date.now() - (data.startTime || Date.now())) / 1000);
+        refreshTimerUI(timerState, elapsed, true, customDur);
+      } else {
+        const remaining = Math.max(0, Math.ceil(((data.endTime || Date.now()) - Date.now()) / 1000));
+        refreshTimerUI(timerState, remaining, false, customDur);
+      }
+    } else {
+      refreshTimerUI('idle', 0, false, customDur);
+    }
   });
 }
 pollTimer();
@@ -225,6 +270,8 @@ function renderClipboard(history) {
   history.forEach((item) => {
     const li = document.createElement('li');
     li.className = 'clip-item';
+    li.title = 'Click or drag to copy';
+    li.draggable = true;
 
     const label = document.createElement('div');
     label.className = 'clip-label';
@@ -232,6 +279,28 @@ function renderClipboard(history) {
 
     const preview = document.createElement('div');
     preview.textContent = item.text.slice(0, 100) + (item.text.length > 100 ? '…' : '');
+
+    // Drag to copy
+    li.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', item.text);
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+
+    // Click to copy
+    li.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(item.text);
+        const originalText = preview.textContent;
+        preview.textContent = 'Copied to clipboard!';
+        preview.style.color = 'var(--accent)';
+        setTimeout(() => {
+          preview.textContent = originalText;
+          preview.style.color = '';
+        }, 1200);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+    });
 
     li.appendChild(label);
     li.appendChild(preview);
@@ -246,11 +315,6 @@ chrome.storage.local.get(['clipboardHistory'], (data) => {
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.clipboardHistory) {
     renderClipboard(changes.clipboardHistory.newValue || []);
-  }
-  if (changes.timerState || changes.timeRemaining || changes.isUnlimited) {
-    chrome.storage.local.get(['timerState', 'timeRemaining', 'isUnlimited'], (data) => {
-      refreshTimerUI(data.timerState || 'idle', data.timeRemaining ?? 1500, data.isUnlimited === true);
-    });
   }
 });
 
@@ -303,3 +367,181 @@ catStyleSelect.addEventListener('change', () => {
   document.body.className = `cat-style-${style}`;
   broadcastSettings();
 });
+
+// ── Privacy Policy Link ────────────────────────
+const privacyLink = document.getElementById('privacy-link');
+if (privacyLink) {
+  privacyLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    chrome.tabs.create({ url: privacyLink.href });
+  });
+}
+
+// ── Tabs Navigation ────────────────────────────
+const navBtns = document.querySelectorAll('.nav-btn');
+const tabContents = document.querySelectorAll('.tab-content');
+
+navBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    // Remove active from all
+    navBtns.forEach(b => b.classList.remove('active'));
+    tabContents.forEach(tc => tc.classList.remove('active'));
+    
+    // Add active to clicked
+    btn.classList.add('active');
+    const targetId = btn.getAttribute('data-target');
+    document.getElementById(targetId).classList.add('active');
+
+    // If Stats tab is opened, refresh stats
+    if (targetId === 'tab-stats') {
+      refreshStats();
+    }
+  });
+});
+
+// ── Focus Stats ────────────────────────────────
+const statToday = document.getElementById('stat-today');
+const statWeek = document.getElementById('stat-week');
+const statMonth = document.getElementById('stat-month');
+
+function refreshStats() {
+  chrome.storage.local.get(['focusSessions'], (data) => {
+    const sessions = data.focusSessions || [];
+    const now = new Date();
+    
+    // Start of today
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    
+    // Start of this week (assuming Monday as start)
+    const day = now.getDay() || 7; 
+    const startOfWeek = new Date(startOfToday);
+    startOfWeek.setDate(now.getDate() - day + 1);
+    const startOfWeekTime = startOfWeek.getTime();
+    
+    // Start of this month
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+    let todayMin = 0, weekMin = 0, monthMin = 0;
+
+    sessions.forEach(s => {
+      if (s.timestamp >= startOfToday) todayMin += s.minutes;
+      if (s.timestamp >= startOfWeekTime) weekMin += s.minutes;
+      if (s.timestamp >= startOfMonth) monthMin += s.minutes;
+    });
+
+    statToday.textContent = todayMin;
+    statWeek.textContent = weekMin;
+    statMonth.textContent = monthMin;
+  });
+}
+
+// ── To-Do List (Tasks) ─────────────────────────
+const taskList = document.getElementById('task-list');
+const newTaskInput = document.getElementById('new-task-input');
+const btnAddTask = document.getElementById('btn-add-task');
+
+function renderTasks(tasks) {
+  taskList.innerHTML = '';
+  if (!tasks || tasks.length === 0) {
+    taskList.innerHTML = '<li class="clip-empty">All caught up!</li>';
+    return;
+  }
+  
+  tasks.forEach((task, index) => {
+    const li = document.createElement('li');
+    li.className = 'task-item';
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'task-checkbox';
+    cb.checked = task.done;
+
+    const span = document.createElement('span');
+    span.className = 'task-text' + (task.done ? ' done' : '');
+    span.textContent = task.text;
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn-del-task';
+    delBtn.innerHTML = '✕';
+
+    // Toggle done
+    cb.addEventListener('change', () => {
+      task.done = cb.checked;
+      span.className = 'task-text' + (task.done ? ' done' : '');
+      saveTasks(tasks);
+      if (task.done) {
+        // Happy cat bounce!
+        triggerHappyCat();
+      }
+    });
+
+    // Delete task
+    delBtn.addEventListener('click', () => {
+      tasks.splice(index, 1);
+      saveTasks(tasks);
+      renderTasks(tasks);
+    });
+
+    li.appendChild(cb);
+    li.appendChild(span);
+    li.appendChild(delBtn);
+    taskList.appendChild(li);
+  });
+}
+
+function saveTasks(tasks) {
+  chrome.storage.local.set({ katbanTasks: tasks });
+}
+
+function addTask() {
+  const text = newTaskInput.value.trim();
+  if (!text) return;
+  chrome.storage.local.get(['katbanTasks'], (data) => {
+    const tasks = data.katbanTasks || [];
+    tasks.push({ text: text, done: false, id: Date.now() });
+    saveTasks(tasks);
+    renderTasks(tasks);
+    newTaskInput.value = '';
+  });
+}
+
+btnAddTask.addEventListener('click', addTask);
+newTaskInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') addTask();
+});
+
+chrome.storage.local.get(['katbanTasks'], (data) => {
+  renderTasks(data.katbanTasks || []);
+});
+
+// ── Daily Cat Fact ─────────────────────────────
+const CAT_FACTS = [
+  "Cats spend 70% of their lives sleeping.",
+  "A cat's purr has a frequency of 25 to 150 Hertz.",
+  "Cats can rotate their ears 180 degrees.",
+  "The oldest known pet cat was found in a 9,500-year-old grave.",
+  "Cats don't have a sweet tooth.",
+  "A group of cats is called a clowder.",
+  "A cat's nose print is unique, like a human's fingerprint.",
+  "Cats have 32 muscles that control their outer ear.",
+  "Isaac Newton invented the cat flap door.",
+  "Cats can jump up to six times their height.",
+  "A cat's purr can help heal bones and tissues.",
+  "Most cats are lactose intolerant.",
+  "Cats have five toes on their front paws, but only four on the back.",
+  "A cat rubs against you to mark you as its territory.",
+  "The world's longest cat measured 48.5 inches long.",
+  "Cats typically sleep 12 to 16 hours a day.",
+  "When a cat blinks slowly at you, it's a sign of trust.",
+  "Cats use their whiskers to determine if they can fit through a space.",
+  "Adult cats only meow to communicate with humans.",
+  "A female cat is called a queen."
+];
+
+const catFactSpan = document.getElementById('cat-fact');
+if (catFactSpan) {
+  const today = new Date();
+  // Use a mix of year, month, and day to pick a stable index for the whole day
+  const index = (today.getFullYear() + today.getMonth() + today.getDate()) % CAT_FACTS.length;
+  catFactSpan.textContent = "🐾 Fact: " + CAT_FACTS[index];
+}

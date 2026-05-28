@@ -3,8 +3,7 @@
 // Central Brain for Cat State and Pomodoro Timer
 // ──────────────────────────────────────────────
 
-let POMODORO_DURATION = 25 * 60; // default 25 minutes in seconds
-const BREAK_DURATION = 5 * 60;     // 5 minutes in seconds
+const BREAK_DURATION = 5 * 60; // 5 minutes in seconds
 
 let sharedCatEnabled = false;
 
@@ -85,7 +84,7 @@ function startDanceLoop(brain) {
         danceStartTime = Date.now();
       }
     } else {
-      // Empty, clean up
+      // Bank empty — clean up
       clearInterval(brain.danceInterval);
       brain.danceInterval = null;
       brain.danceBankMs = 0;
@@ -98,18 +97,35 @@ function startDanceLoop(brain) {
 
 // ── Chrome Init & Alarms ──────────────────────
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.local.set({
-    timerState: 'idle',
-    timeRemaining: POMODORO_DURATION,
-    isUnlimited: false,
-    customDuration: POMODORO_DURATION,
-    blockedSites: [],
-    clipboardHistory: [],
-    pageCatEnabled: true,
-    meaningCatEnabled: true,
-    sharedCatEnabled: false,
-    globalCatState: null,
-    catStyle: 'primary'
+  chrome.storage.local.get(null, (existing) => {
+    const defaults = {
+      timerState: 'idle',
+      endTime: null,
+      startTime: null,
+      isUnlimited: false,
+      customDuration: 25 * 60,
+      blockedSites: [],
+      clipboardHistory: [],
+      pageCatEnabled: true,
+      meaningCatEnabled: true,
+      sharedCatEnabled: false,
+      globalCatState: null,
+      catStyle: 'primary',
+      focusSessions: []
+    };
+    const toSet = {};
+    for (const key in defaults) {
+      if (existing[key] === undefined) {
+        toSet[key] = defaults[key];
+      }
+    }
+    // Migration: remove obsolete timeRemaining key from old versions
+    if (existing.timeRemaining !== undefined) {
+      chrome.storage.local.remove('timeRemaining');
+    }
+    if (Object.keys(toSet).length > 0) {
+      chrome.storage.local.set(toSet);
+    }
   });
 });
 
@@ -121,71 +137,85 @@ chrome.storage.local.get(['sharedCatEnabled'], (data) => {
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'pomodoroTick') {
-    chrome.storage.local.get(['timerState', 'timeRemaining', 'isUnlimited'], (data) => {
+  // ── Pomodoro End Alarm ──
+  if (alarm.name === 'pomodoroEnd') {
+    chrome.storage.local.get(['timerState', 'isUnlimited', 'customDuration'], (data) => {
       if (chrome.runtime.lastError) return;
       data = data || {};
-      const { timerState, timeRemaining, isUnlimited } = data;
-      if (timerState === 'idle') {
-        chrome.alarms.clear('pomodoroTick');
-        return;
-      }
 
-      if (isUnlimited) {
-        // Unlimited mode: count UP
-        chrome.storage.local.set({ timeRemaining: (timeRemaining || 0) + 1 });
-        return;
-      }
-
-      if (timeRemaining <= 1) {
-        if (timerState === 'focus') {
-          chrome.storage.local.set({ timerState: 'break', timeRemaining: BREAK_DURATION });
-          notifyAllTabs({ type: 'TIMER_STATE', state: 'break' });
-        } else {
-          chrome.storage.local.get(['customDuration'], (d) => {
-            if (chrome.runtime.lastError) return;
-            d = d || {};
-            const resetTo = (d.customDuration && d.customDuration > 0) ? d.customDuration : POMODORO_DURATION;
-            chrome.storage.local.set({ timerState: 'idle', timeRemaining: resetTo });
-            chrome.alarms.clear('pomodoroTick');
-            notifyAllTabs({ type: 'TIMER_STATE', state: 'idle' });
+      if (data.timerState === 'focus' && !data.isUnlimited) {
+        // Focus ended → start break
+        const focusDurationMs = Date.now() - (data.startTime || Date.now());
+        const focusMinutes = Math.round(focusDurationMs / 60000);
+        
+        if (focusMinutes > 0) {
+          chrome.storage.local.get(['focusSessions'], (sessData) => {
+            const sessions = sessData.focusSessions || [];
+            sessions.push({ timestamp: Date.now(), minutes: focusMinutes });
+            // keep only last 60 days
+            const sixtyDaysAgo = Date.now() - (60 * 24 * 60 * 60 * 1000);
+            const filteredSessions = sessions.filter(s => s.timestamp > sixtyDaysAgo);
+            chrome.storage.local.set({ focusSessions: filteredSessions });
           });
         }
-      } else {
-        chrome.storage.local.set({ timeRemaining: timeRemaining - 1 });
+
+        const breakEndTime = Date.now() + BREAK_DURATION * 1000;
+        chrome.storage.local.set({
+          timerState: 'break',
+          startTime: Date.now(),
+          endTime: breakEndTime
+        });
+        chrome.alarms.create('pomodoroEnd', { when: breakEndTime });
+        notifyAllTabs({ type: 'TIMER_STATE', state: 'break' });
+      } else if (data.timerState === 'break') {
+        // Break ended → go idle
+        chrome.storage.local.set({
+          timerState: 'idle',
+          endTime: null,
+          startTime: null,
+          isUnlimited: false
+        });
+        chrome.alarms.clear('pomodoroEnd');
+        notifyAllTabs({ type: 'TIMER_STATE', state: 'idle' });
       }
     });
     return;
   }
 
-  // Cat Alarms
-  const parts = alarm.name.split('_');
-  if (parts.length < 2) return;
-  const action = parts[0];
-  const id = parts[1] === 'global' ? 'global' : parseInt(parts[1]);
+  // ── Cat Alarms ──
+  // Use indexOf to correctly split alarm names like "leaveprop_global"
+  const underscoreIdx = alarm.name.indexOf('_');
+  if (underscoreIdx === -1) return;
+  const action = alarm.name.substring(0, underscoreIdx);
+  const rawId = alarm.name.substring(underscoreIdx + 1);
+  const id = rawId === 'global' ? 'global' : parseInt(rawId, 10);
+  if (id !== 'global' && isNaN(id)) return;
+
   const brain = brains.get(id);
   if (!brain) return;
 
-  if (action === 'idle') {
-    if (brain.state !== 'exhausted' && brain.state !== 'dancing' && brain.state !== 'peeking' && brain.state !== 'judging') {
-      setBrainState(brain, 'sleeping');
-    }
-  } else if (action === 'prop') {
-    if (brain.state !== 'on-prop' && brain.state !== 'leaving-prop' && brain.state !== 'peeking' && brain.state !== 'judging') {
-      setBrainState(brain, 'on-prop');
-      const leaveDelay = (Math.random() * 60000 + 30000) / 60000;
-      chrome.alarms.create(`leaveprop_${brain.id}`, { delayInMinutes: leaveDelay });
-    }
-    scheduleProp(brain.id);
-  } else if (action === 'leaveprop') {
-    if (brain.state === 'on-prop') {
-      setBrainState(brain, 'leaving-prop');
-      setTimeout(() => {
-        if (brain.state === 'leaving-prop') {
-          checkFocusAndRevert(brain);
-        }
-      }, 1500);
-    }
+  switch (action) {
+    case 'idle':
+      if (brain.state !== 'exhausted' && brain.state !== 'dancing' &&
+          brain.state !== 'peeking' && brain.state !== 'judging') {
+        setBrainState(brain, 'sleeping');
+      }
+      break;
+    case 'prop':
+      if (brain.state !== 'on-prop' && brain.state !== 'leaving-prop' &&
+          brain.state !== 'peeking' && brain.state !== 'judging') {
+        setBrainState(brain, 'on-prop');
+        const leaveDelay = (Math.random() * 60000 + 30000) / 60000;
+        chrome.alarms.create(`leaveprop_${brain.id}`, { delayInMinutes: leaveDelay });
+      }
+      scheduleProp(brain.id);
+      break;
+    case 'leaveprop':
+      if (brain.state === 'on-prop') {
+        setBrainState(brain, 'leaving-prop');
+        // Content script handles the 1.5s revert timeout locally
+      }
+      break;
   }
 });
 
@@ -203,113 +233,175 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 
 // ── Message Handling from popup & content ──────
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  // Timer Messages
-  if (msg.type === 'START_FOCUS') {
-    const duration = msg.duration; // -1 for unlimited, or seconds
-    const isUnlimited = duration === -1;
-    if (!isUnlimited && duration > 0) POMODORO_DURATION = duration;
-    chrome.storage.local.set({
-      timerState: 'focus',
-      timeRemaining: isUnlimited ? 0 : (duration > 0 ? duration : POMODORO_DURATION),
-      isUnlimited: isUnlimited,
-      customDuration: duration
-    });
-    chrome.alarms.create('pomodoroTick', { periodInMinutes: 1 / 60 });
-    notifyAllTabs({ type: 'TIMER_STATE', state: 'focus' });
-    sendResponse({ ok: true });
-  }
-  if (msg.type === 'STOP_TIMER') {
-    chrome.storage.local.get(['customDuration'], (d) => {
-      if (chrome.runtime.lastError) return;
-      d = d || {};
-      const dur = d.customDuration;
-      const resetTo = (dur && dur > 0) ? dur : POMODORO_DURATION;
+  switch (msg.type) {
+    case 'START_FOCUS': {
+      const duration = msg.duration; // -1 for unlimited, or seconds
+      const isUnlimited = duration === -1;
+      const now = Date.now();
+      const effectiveDuration = (!isUnlimited && duration > 0) ? duration : 25 * 60;
+      const endTime = isUnlimited ? null : (now + effectiveDuration * 1000);
+
       chrome.storage.local.set({
-        timerState: 'idle',
-        timeRemaining: resetTo,
-        isUnlimited: false
+        timerState: 'focus',
+        startTime: now,
+        endTime: endTime,
+        isUnlimited: isUnlimited,
+        customDuration: duration
       });
-      chrome.alarms.clear('pomodoroTick');
-      notifyAllTabs({ type: 'TIMER_STATE', state: 'idle' });
-    });
-    sendResponse({ ok: true });
-  }
-  
-  // Settings Update
-  if (msg.type === 'UPDATE_SHARED_SETTING') {
-    sharedCatEnabled = msg.enabled;
-    // Clear old brains
-    brains.forEach((brain, key) => {
-      if (brain.danceInterval) clearInterval(brain.danceInterval);
-      chrome.alarms.clear(`idle_${key}`);
-      chrome.alarms.clear(`prop_${key}`);
-      chrome.alarms.clear(`leaveprop_${key}`);
-    });
-    brains.clear();
-    
-    // Reset all tabs to the original idle animation immediately
-    notifyAllTabs({ type: 'SYNC_CAT_STATE', state: null });
 
-    if (sharedCatEnabled) {
-      getBrain('global');
-    }
-  }
-
-  // Client Event Sink
-  const tabId = sender.tab ? sender.tab.id : null;
-  if (!tabId) return true;
-  
-  if (msg.type === 'CAT_EVENT') {
-    const brain = getBrain(tabId);
-    const event = msg.event;
-    
-    if (event === 'ACTIVITY') {
-      if (brain.state === 'sleeping') {
-        setBrainState(brain, null);
+      if (!isUnlimited) {
+        chrome.alarms.create('pomodoroEnd', { when: endTime });
       }
-      scheduleIdle(brain.id);
-    } 
-    else if (event === 'TYPING') {
-      if (brain.state === 'peeking' || brain.state === 'judging' || brain.state === 'on-prop' || brain.state === 'leaving-prop') return true;
-      brain.lastTypeTime = Date.now();
-      brain.danceBankMs += 500;
-      if (brain.danceBankMs > 2500) brain.danceBankMs = 2500;
-      startDanceLoop(brain);
-    }
-    else if (event === 'SET_STATE') {
-      if (brain.state === 'on-prop' || brain.state === 'leaving-prop') return true;
-      setBrainState(brain, msg.state);
-    }
-    else if (event === 'REQUEST_SYNC') {
-      if (brain.id === 'global') {
-        chrome.tabs.sendMessage(tabId, { type: 'SYNC_CAT_STATE', state: brain.state }).catch(() => {});
-      } else {
-        chrome.tabs.sendMessage(tabId, { type: 'SYNC_CAT_STATE', state: brain.state }).catch(() => {});
-      }
-    }
-  }
 
-  if (msg.type === 'COPY_EVENT') {
-    chrome.storage.local.get(['clipboardHistory'], (data) => {
-      if (chrome.runtime.lastError) return;
-      data = data || {};
-      let history = data.clipboardHistory || [];
-      history.unshift({ text: msg.text, timestamp: Date.now() });
-      if (history.length > 5) history = history.slice(0, 5);
-      chrome.storage.local.set({ clipboardHistory: history });
-    });
-    
-    if (msg.text && msg.text.length > 500) {
+      notifyAllTabs({ type: 'TIMER_STATE', state: 'focus' });
+      blockCurrentTabs();
+      sendResponse({ ok: true });
+      break;
+    }
+
+    case 'STOP_TIMER': {
+      chrome.storage.local.get(['timerState', 'startTime'], (data) => {
+        if (data && data.timerState === 'focus') {
+          const focusDurationMs = Date.now() - (data.startTime || Date.now());
+          const focusMinutes = Math.round(focusDurationMs / 60000);
+          
+          if (focusMinutes > 0) {
+            chrome.storage.local.get(['focusSessions'], (sessData) => {
+              const sessions = sessData.focusSessions || [];
+              sessions.push({ timestamp: Date.now(), minutes: focusMinutes });
+              const sixtyDaysAgo = Date.now() - (60 * 24 * 60 * 60 * 1000);
+              chrome.storage.local.set({ focusSessions: sessions.filter(s => s.timestamp > sixtyDaysAgo) });
+            });
+          }
+        }
+        
+        chrome.storage.local.set({
+          timerState: 'idle',
+          endTime: null,
+          startTime: null,
+          isUnlimited: false
+        });
+        chrome.alarms.clear('pomodoroEnd');
+        notifyAllTabs({ type: 'TIMER_STATE', state: 'idle' });
+      });
+      sendResponse({ ok: true });
+      break;
+    }
+
+    case 'UPDATE_SHARED_SETTING': {
+      sharedCatEnabled = msg.enabled;
+      // Clear old brains
+      brains.forEach((brain, key) => {
+        if (brain.danceInterval) clearInterval(brain.danceInterval);
+        chrome.alarms.clear(`idle_${key}`);
+        chrome.alarms.clear(`prop_${key}`);
+        chrome.alarms.clear(`leaveprop_${key}`);
+      });
+      brains.clear();
+
+      // Reset all tabs to idle animation
+      notifyAllTabs({ type: 'SYNC_CAT_STATE', state: null });
+
+      if (sharedCatEnabled) {
+        getBrain('global');
+      }
+      break;
+    }
+
+    case 'CAT_EVENT': {
+      const tabId = sender.tab ? sender.tab.id : null;
+      if (!tabId) break;
+
       const brain = getBrain(tabId);
-      setBrainState(brain, 'judging');
-      setTimeout(() => {
-        if (brain.state === 'judging') setBrainState(brain, null);
-      }, 3200);
+
+      switch (msg.event) {
+        case 'ACTIVITY':
+          if (brain.state === 'sleeping') {
+            setBrainState(brain, null);
+          }
+          scheduleIdle(brain.id);
+          break;
+
+        case 'TYPING':
+          if (brain.state === 'peeking' || brain.state === 'judging' ||
+              brain.state === 'on-prop' || brain.state === 'leaving-prop') break;
+          brain.lastTypeTime = Date.now();
+          brain.danceBankMs += 500;
+          if (brain.danceBankMs > 2500) brain.danceBankMs = 2500;
+          startDanceLoop(brain);
+          scheduleIdle(brain.id);
+          break;
+
+        case 'SET_STATE':
+          if (brain.state === 'on-prop' || brain.state === 'leaving-prop') break;
+          setBrainState(brain, msg.state);
+          break;
+
+        case 'REQUEST_SYNC':
+          chrome.tabs.sendMessage(tabId, { type: 'SYNC_CAT_STATE', state: brain.state }).catch(() => {});
+          break;
+      }
+      break;
+    }
+
+    case 'COPY_EVENT': {
+      const tabId = sender.tab ? sender.tab.id : null;
+      if (!tabId) break;
+
+      chrome.storage.local.get(['clipboardHistory'], (data) => {
+        if (chrome.runtime.lastError) return;
+        data = data || {};
+        let history = data.clipboardHistory || [];
+        history.unshift({ text: msg.text, timestamp: Date.now() });
+        if (history.length > 15) history = history.slice(0, 15);
+        chrome.storage.local.set({ clipboardHistory: history });
+      });
+
+      if (msg.text && msg.text.length > 500) {
+        const brain = getBrain(tabId);
+        setBrainState(brain, 'judging');
+        // Content script handles the 3.2s revert timeout locally
+      }
+      break;
     }
   }
 
   return true;
 });
+
+// ── Proper hostname-based site blocking ────────
+function isBlocked(url, blockedSites) {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return blockedSites.some(site => {
+      const pattern = site.trim().toLowerCase();
+      if (!pattern) return false;
+      // Match exact domain or any subdomain
+      return hostname === pattern || hostname.endsWith('.' + pattern);
+    });
+  } catch {
+    return false;
+  }
+}
+
+// ── Block already-open tabs when focus starts ──
+function blockCurrentTabs() {
+  chrome.storage.local.get(['blockedSites'], (data) => {
+    if (chrome.runtime.lastError) return;
+    data = data || {};
+    const blockedSites = data.blockedSites || [];
+    if (blockedSites.length === 0) return;
+
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach(tab => {
+        if (!tab.url || !tab.id) return;
+        if (isBlocked(tab.url, blockedSites)) {
+          chrome.tabs.sendMessage(tab.id, { type: 'BLOCK_PAGE' }).catch(() => {});
+        }
+      });
+    });
+  });
+}
 
 // ── Tab Monitoring for Site Blocking ──────────
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -318,19 +410,17 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (chrome.runtime.lastError) return;
     data = data || {};
     if (data.timerState !== 'focus') return;
-    const url = tab.url.toLowerCase();
-    const blocked = (data.blockedSites || []).some(site => url.includes(site.trim().toLowerCase()));
-    if (blocked) {
-      chrome.tabs.sendMessage(tabId, { type: 'BLOCK_PAGE' });
+    if (isBlocked(tab.url, data.blockedSites || [])) {
+      chrome.tabs.sendMessage(tabId, { type: 'BLOCK_PAGE' }).catch(() => {});
     }
   });
 });
 
-// ── Helper: Notify all tabs ────────────────────
+// ── Helper: Notify all content-script-eligible tabs ──
 function notifyAllTabs(msg) {
   chrome.tabs.query({}, (tabs) => {
     tabs.forEach(tab => {
-      if (tab.id) {
+      if (tab.id && tab.url && /^https?:\/\//.test(tab.url)) {
         chrome.tabs.sendMessage(tab.id, msg).catch(() => {});
       }
     });
