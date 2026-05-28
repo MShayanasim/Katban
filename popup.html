@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Katban</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Settings Gear Icon -->
+  <button class="icon-btn btn-settings-open" id="btn-settings-open" title="Settings">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+  </button>
+
+  <!-- ── Cat Mascot ── -->
+  <div class="mascot-wrap" id="mascot-wrap">
+    <svg id="cat-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <clipPath id="popup-eyes-clip">
+          <rect x="26" y="52" width="18" height="14"/>
+          <rect x="56" y="52" width="18" height="14"/>
+        </clipPath>
+        <pattern id="popup-brindle" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(15)">
+          <rect width="40" height="40" fill="#685f54"/>
+          <path d="M -40 8 Q -30 20 -20 8 T 0 8 Q 10 20 20 8 T 40 8 Q 50 20 60 8 T 80 8" stroke="#2b2725" stroke-width="5" fill="none"/>
+          <path d="M -40 22 Q -32 32 -20 22 T 0 22 Q 8 32 20 22 T 40 22 Q 48 32 60 22 T 80 22" stroke="#2b2725" stroke-width="4" fill="none"/>
+          <path d="M -40 34 Q -25 42 -20 34 T 0 34 Q 15 42 20 34 T 40 34 Q 55 42 60 34 T 80 34" stroke="#2b2725" stroke-width="6" fill="none"/>
+        </pattern>
+      </defs>
+      <!-- Ears -->
+      <polygon class="cat-ear left-ear" points="16,54 28,18 42,46" fill="var(--cat-main, #c8c8c8)" stroke="var(--cat-stroke, #777)" stroke-width="2" stroke-linejoin="miter"/>
+      <polygon class="cat-ear right-ear" points="84,54 72,18 58,46" fill="var(--cat-main, #c8c8c8)" stroke="var(--cat-stroke, #777)" stroke-width="2" stroke-linejoin="miter"/>
+      
+      <!-- Inner ears -->
+      <polygon points="23,48 29,28 39,44" fill="var(--cat-inner, #c0a8a8)" stroke="none"/>
+      <polygon points="77,48 71,28 61,44" fill="var(--cat-inner, #c0a8a8)" stroke="none"/>
+
+      <!-- Angular polygon head -->
+      <polygon class="cat-head" points="50,24 78,36 88,62 80,82 20,82 12,62 22,36" fill="var(--cat-main, #c8c8c8)" stroke="var(--cat-stroke, #777)" stroke-width="2" stroke-linejoin="miter"/>
+
+      <!-- Nose diamond and muzzle -->
+      <path d="M 50 35 L 51.5 42 L 53 38 L 54 46 Q 54 60 68 76 Q 50 82 32 76 Q 46 60 46 46 L 47 38 L 48.5 42 Z" fill="var(--cat-muzzle, transparent)" stroke="none"/>
+      <polygon points="50,68 53,71 50,74 47,71" fill="var(--cat-nose, #bbb)"/>
+
+      <!-- Forehead stripes for blending (drawn OVER muzzle) -->
+      <line x1="42" y1="30" x2="47" y2="44" stroke="var(--cat-stripes, var(--cat-stroke, #777))" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="50" y1="28" x2="50" y2="44" stroke="var(--cat-stripes, var(--cat-stroke, #777))" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="58" y1="30" x2="53" y2="44" stroke="var(--cat-stripes, var(--cat-stroke, #777))" stroke-width="2.5" stroke-linecap="round"/>
+
+      <!-- Collar -->
+      <path d="M 22 75 Q 50 90 78 75" stroke="var(--cat-collar-color, transparent)" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <circle cx="50" cy="83" r="5" fill="var(--cat-bell-color, transparent)"/>
+
+      <!-- Eye sockets (pixelated rects) -->
+      <rect x="26" y="52" width="18" height="14" fill="var(--cat-eye-bg, #ffffff)" stroke="var(--cat-stroke, #777)" stroke-width="2" shape-rendering="crispEdges"/>
+      <rect x="56" y="52" width="18" height="14" fill="var(--cat-eye-bg, #ffffff)" stroke="var(--cat-stroke, #777)" stroke-width="2" shape-rendering="crispEdges"/>
+
+      <g id="pupils" clip-path="url(#popup-eyes-clip)">
+        <rect class="pupil" id="pupil-left" x="33" y="54" width="4" height="10" fill="var(--cat-pupil, #333)" shape-rendering="crispEdges"/>
+        <rect class="pupil" id="pupil-right" x="63" y="54" width="4" height="10" fill="var(--cat-pupil, #333)" shape-rendering="crispEdges"/>
+        
+        <!-- pupil shine -->
+        <rect id="shine-left" x="34" y="55" width="2" height="2" fill="white" shape-rendering="crispEdges"/>
+        <rect id="shine-right" x="64" y="55" width="2" height="2" fill="white" shape-rendering="crispEdges"/>
+      </g>
+
+      <!-- Mouth -->
+      <path class="mouth-smile" d="M 44 74 Q 47 78 50 75 Q 53 78 56 74" stroke="var(--cat-stroke, #777)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <rect class="mouth-scared" x="46" y="74" width="8" height="6" fill="var(--cat-pupil, #333)" shape-rendering="crispEdges" opacity="0"/>
+
+      <!-- Whiskers -->
+      <line x1="12" y1="66" x2="28" y2="68" stroke="var(--cat-whiskers, #999)" stroke-width="1"/>
+      <line x1="10" y1="72" x2="28" y2="72" stroke="var(--cat-whiskers, #999)" stroke-width="1"/>
+      <line x1="88" y1="66" x2="72" y2="68" stroke="var(--cat-whiskers, #999)" stroke-width="1"/>
+      <line x1="90" y1="72" x2="72" y2="72" stroke="var(--cat-whiskers, #999)" stroke-width="1"/>
+    </svg>
+    <p class="cat-status" id="cat-status">Idle</p>
+  </div>
+
+  <!-- ── Pomodoro Section ── -->
+  <section class="section" id="pomodoro-section">
+    <div class="section-header">
+      <span class="section-label">FOCUS TIMER</span>
+      <input type="text" class="timer-input" id="timer-input" value="25:00" maxlength="5" title="Enter MM:SS or - for unlimited" />
+    </div>
+    <div class="timer-controls">
+      <button class="btn btn-primary" id="btn-start">Start Focus</button>
+      <button class="btn btn-ghost" id="btn-stop">Stop</button>
+    </div>
+    <p class="timer-hint">Enter <span class="hint-code">MM:SS</span> or <span class="hint-code">-</span> for unlimited</p>
+
+    <div class="blocked-sites-wrap">
+      <label class="sub-label" for="blocked-input">BLOCKED SITES</label>
+      <textarea id="blocked-input" class="text-input" placeholder="reddit.com, youtube.com" rows="2"></textarea>
+      <button class="btn btn-ghost btn-sm" id="btn-save-sites">Save</button>
+    </div>
+  </section>
+
+  <!-- ── Clipboard Section ── -->
+  <section class="section" id="clipboard-section">
+    <div class="section-header">
+      <span class="section-label">CLIPBOARD HISTORY</span>
+      <button class="btn btn-ghost btn-sm" id="btn-clear-history">Clear</button>
+    </div>
+    <ul class="clipboard-list" id="clipboard-list">
+      <li class="clip-empty">Nothing copied yet.</li>
+    </ul>
+  </section>
+
+  <!-- ── Settings Overlay ── -->
+  <div class="settings-overlay" id="settings-overlay">
+    <div class="settings-header">
+      <button class="icon-btn btn-settings-close" id="btn-settings-close" title="Back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </button>
+      <span class="section-label" style="font-size: 11px; margin-left: 8px;">SETTINGS</span>
+    </div>
+    
+    <div class="section" style="border: none; padding: 14px;">
+      <div class="setting-row">
+        <span>Page Cat</span>
+        <label class="toggle-switch" title="Show corner cat">
+          <input type="checkbox" id="page-cat-toggle" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="setting-row">
+        <span>Meaning Cat</span>
+        <label class="toggle-switch" title="Show cat on definition bubble">
+          <input type="checkbox" id="meaning-cat-toggle" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="setting-row">
+        <span>Shared Cat</span>
+        <label class="toggle-switch" title="Sync Cat Across Tabs">
+          <input type="checkbox" id="shared-cat-toggle">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="setting-row" style="margin-top:8px;">
+        <span>Cat Style</span>
+        <select id="cat-style-select" class="text-input" style="width: 110px; padding: 4px; cursor: pointer;">
+          <option value="primary">Primary</option>
+          <option value="pink">Pink</option>
+          <option value="black">Black</option>
+          <option value="orange">Orange</option>
+          <option value="custom-tabby">Custom Tabby</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <footer class="made-by">Made by Shayan Asim</footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>

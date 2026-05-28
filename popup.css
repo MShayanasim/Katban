@@ -1,0 +1,428 @@
+/* ──────────────────────────────────────────
+   KATBAN POPUP — Strict Minimalist Aesthetic
+   ────────────────────────────────────────── */
+
+:root {
+  --bg:         #272727;
+  --surface:    #2f2f2f;
+  --surface-2:  #383838;
+  --border:     #444444;
+  --text:       #f0f0f0;
+  --text-dim:   #888888;
+  --accent:     #a0c4a0;   /* muted sage green — calm, focused */
+  --danger:     #c47a7a;   /* muted red for scared/blocked */
+  --warn:       #c4a87a;   /* muted amber for judgement */
+  --card-bg:    #fdfdfd;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 300px;
+  height: 480px;
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: 580px;
+  overflow-y: auto;
+  background: var(--bg);
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  color: var(--text);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+body::-webkit-scrollbar { width: 3px; }
+body::-webkit-scrollbar-thumb { background: var(--border); }
+
+/* ── Mascot ─────────────────────────────── */
+.mascot-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+#cat-svg {
+  width: 90px;
+  height: 90px;
+  overflow: visible;
+}
+
+/* Smooth ear & head transitions */
+.cat-ear {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#pupils {
+  transition: transform 0.08s linear;
+}
+
+.pupil {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mouth-smile, .mouth-scared {
+  transition: opacity 0.2s ease;
+}
+
+/* States */
+#cat-svg.scared .left-ear  { transform: rotate(-35deg) translateY(6px); }
+#cat-svg.scared .right-ear { transform: rotate(35deg)  translateY(6px); }
+#cat-svg.scared .pupil     { transform: scale(2.5, 1); }
+#cat-svg.scared .mouth-smile { opacity: 0; }
+#cat-svg.scared .mouth-scared { opacity: 1; }
+
+#cat-svg.judging .left-ear  { transform: rotate(10deg); }
+#cat-svg.judging .right-ear { transform: rotate(-10deg); }
+
+#cat-svg.focused .left-ear  { transform: rotate(-5deg) translateY(-2px); }
+#cat-svg.focused .right-ear { transform: rotate(5deg)  translateY(-2px); }
+
+#cat-svg.relaxed .cat-head { transform: translateY(2px); }
+
+@keyframes shake {
+  0%,100% { transform: translate(0,0) rotate(0); }
+  20%  { transform: translate(-2px, 1px) rotate(-1.5deg); }
+  40%  { transform: translate(2px, -1px) rotate(1.5deg); }
+  60%  { transform: translate(-2px, 1px) rotate(-1deg); }
+  80%  { transform: translate(2px, 0) rotate(1deg); }
+}
+
+#cat-svg.scared { animation: shake 0.4s ease infinite; }
+
+@keyframes bounce {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-4px); }
+}
+#cat-svg.break-mode { animation: bounce 1.2s ease-in-out infinite; }
+
+.cat-status {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  transition: color 0.4s ease;
+}
+.cat-status.focus  { color: var(--accent); }
+.cat-status.scared { color: var(--danger); }
+.cat-status.break  { color: var(--warn); }
+
+/* ── Sections ───────────────────────────── */
+.section {
+  border: 1px solid var(--border);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.section-label {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+}
+
+.toggle-row {
+  align-items: center;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.hint {
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+/* ── Timer ──────────────────────────────── */
+.timer-input {
+  font-size: 22px;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  font-family: inherit;
+  width: 72px;
+  text-align: right;
+  padding: 2px 6px;
+  outline: none;
+  transition: color 0.4s ease, border-color 0.2s ease;
+  cursor: text;
+}
+.timer-input:hover { border-color: var(--border); }
+.timer-input:focus { border-color: var(--accent); }
+.timer-input.focus { color: var(--accent); }
+.timer-input.break { color: var(--warn); }
+.timer-input.unlimited { letter-spacing: 0; font-size: 14px; }
+
+.timer-hint {
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.85;
+  margin-top: -2px;
+}
+.hint-code {
+  background: var(--surface-2);
+  padding: 1px 4px;
+  border: 1px solid var(--border);
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+}
+
+.made-by {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.8;
+  padding: 4px 0 2px;
+  letter-spacing: 0.05em;
+}
+
+.timer-controls {
+  display: flex;
+  gap: 6px;
+}
+
+/* ── Buttons ────────────────────────────── */
+.btn {
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #1a2a1a;
+  border-color: var(--accent);
+  font-weight: bold;
+}
+.btn-primary:hover { background: #8ab48a; }
+
+.btn-ghost:hover { background: var(--surface-2); }
+
+.btn-sm { padding: 3px 8px; font-size: 10px; }
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+  border-radius: 4px;
+}
+.icon-btn:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.btn-settings-open {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+}
+
+/* ── Blocked Sites ──────────────────────── */
+.blocked-sites-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sub-label {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+
+.text-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11px;
+  padding: 6px;
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.text-input:focus { border-color: var(--accent); }
+
+/* ── Clipboard ──────────────────────────── */
+.clipboard-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.clip-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  font-size: 11px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+  transition: background 0.15s;
+}
+.clip-item:hover { background: var(--surface-2); }
+
+.clip-label {
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+}
+
+.clip-empty {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* ── Toggle Switch ──────────────────────── */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+.toggle-switch input { display: none; }
+.toggle-track {
+  display: block;
+  width: 30px;
+  height: 16px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  transition: background 0.25s;
+}
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  background: var(--text-dim);
+  transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), background 0.25s;
+}
+.toggle-switch input:checked + .toggle-track { background: var(--accent); }
+.toggle-switch input:checked + .toggle-track::after {
+  transform: translateX(14px);
+  background: #1a2a1a;
+}
+
+/* ── Cat Styles ── */
+body.cat-style-primary {
+  --cat-main: #c8c8c8;
+  --cat-stroke: #777;
+  --cat-inner: #c0a8a8;
+  --cat-nose: #bbb;
+  --cat-whiskers: #999;
+  --cat-pupil: #333;
+}
+body.cat-style-pink {
+  --cat-main: #ffb6c1;
+  --cat-stroke: #d87093;
+  --cat-inner: #ffc0cb;
+  --cat-nose: #ff1493;
+  --cat-whiskers: #d87093;
+  --cat-pupil: #8b0a50;
+}
+body.cat-style-black {
+  --cat-main: #3a3a3a;
+  --cat-stroke: #1a1a1a;
+  --cat-inner: #5a5a5a;
+  --cat-nose: #0f0f0f;
+  --cat-whiskers: #666666;
+  --cat-pupil: #000000;
+}
+body.cat-style-orange {
+  --cat-main: #ffa500;
+  --cat-stroke: #cc8400;
+  --cat-inner: #ffcc80;
+  --cat-nose: #e65c00;
+  --cat-whiskers: #cc8400;
+  --cat-pupil: #4d2600;
+}
+body.cat-style-custom-tabby {
+  --cat-main: url(#popup-brindle); /* uses the popup pattern */
+  --cat-stroke: #151515;
+  --cat-inner: #c0a8a8;
+  --cat-nose: #e8a2a2;
+  --cat-whiskers: #dddddd;
+  --cat-pupil: #111111;
+  --cat-eye-bg: #a3b86c;
+  --cat-belly: #ffffff;
+  --cat-muzzle: #ffffff;
+  --cat-stripes: #2b2725;
+  --cat-collar-color: #800080;
+  --cat-bell-color: #9370DB;
+  --cat-tail: #2b2725;
+  --cat-paws: #ffffff;
+}
+
+/* ── Settings Overlay ───────────────────── */
+.settings-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  z-index: 50;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-overlay.katban-open {
+  transform: translateX(0);
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}

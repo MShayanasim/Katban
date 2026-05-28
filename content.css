@@ -1,0 +1,705 @@
+/* ──────────────────────────────────────────────
+   KATBAN CONTENT SCRIPT STYLES
+   All rules use !important to prevent page style
+   interference. High-specificity IDs only.
+   ────────────────────────────────────────────── */
+
+#katban-corner-cat {
+  position: fixed !important;
+  bottom: -2px !important;
+  right: 10px !important;
+  z-index: 2147483647 !important;
+  width: 120px !important;
+  height: 72px !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+  pointer-events: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: opacity 0.3s ease,
+              transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              right 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+              bottom 0.6s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+#katban-corner-cat svg {
+  width: 120px !important;
+  height: 72px !important;
+  overflow: visible !important;
+  display: block !important;
+}
+
+#katban-corner-cat.katban-hidden {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+#katban-corner-cat.katban-hovered {
+  opacity: 0.6 !important;
+  -webkit-mask-image: radial-gradient(circle, black 1.5px, transparent 1.5px) !important;
+  -webkit-mask-size: 4px 4px !important;
+  mask-image: radial-gradient(circle, black 1.5px, transparent 1.5px) !important;
+  mask-size: 4px 4px !important;
+}
+
+#katban-corner-cat .k-body,
+#katban-corner-cat .k-tail,
+#katban-corner-cat .k-box,
+#katban-corner-cat .k-paws,
+#katban-corner-cat .k-tucked-paws,
+#katban-corner-cat .k-cat-character {
+  transition: opacity 0.3s ease, transform 0.3s ease !important;
+  transform-box: fill-box !important;
+}
+
+/* ── Ear transitions ── */
+#katban-corner-cat .k-ear {
+  transform-box: fill-box !important;
+  transform-origin: bottom center !important;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+/* ── Pupil group smooth tracking ── */
+#katban-k-pupils {
+  transition: transform 0.07s linear !important;
+}
+
+/* ── Pupil size transitions ── */
+#katban-corner-cat .k-pupil {
+  transform-box: fill-box !important;
+  transform-origin: center !important;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+#katban-corner-cat .k-mouth-smile,
+#katban-corner-cat .k-mouth-scared {
+  transition: opacity 0.2s ease !important;
+}
+
+/* ── SCARED state ── */
+#katban-corner-cat.katban-scared .k-ear-l {
+  transform: rotate(-40deg) translateY(7px) !important;
+}
+#katban-corner-cat.katban-scared .k-ear-r {
+  transform: rotate(40deg) translateY(7px) !important;
+}
+#katban-corner-cat.katban-scared .k-pupil {
+  transform: scale(2.5, 1) !important;
+}
+#katban-corner-cat.katban-scared .k-mouth-smile {
+  opacity: 0 !important;
+}
+#katban-corner-cat.katban-scared .k-mouth-scared {
+  opacity: 1 !important;
+}
+
+/* ── JUDGING state ── */
+#katban-corner-cat.katban-judging .k-ear-l {
+  transform: rotate(14deg) !important;
+}
+#katban-corner-cat.katban-judging .k-ear-r {
+  transform: rotate(-14deg) !important;
+}
+
+/* ── SHAKE animation ── */
+@keyframes katban-shake {
+  0%,100% { transform: translate(0,0); }
+  20%     { transform: translate(-2px, 1px); }
+  40%     { transform: translate(2px,-1px); }
+  60%     { transform: translate(-2px, 0px); }
+  80%     { transform: translate(2px,  1px); }
+}
+#katban-corner-cat.katban-scared svg {
+  animation: katban-shake 0.35s ease infinite !important;
+}
+
+/* ── SLEEPING state ── */
+#katban-corner-cat.katban-sleeping .k-pupil {
+  transform: scale(1, 0.1) !important;
+}
+#katban-corner-cat.katban-sleeping #kat-shine-l,
+#katban-corner-cat.katban-sleeping #kat-shine-r {
+  opacity: 0 !important;
+}
+#katban-corner-cat.katban-sleeping .k-ear-l {
+  transform: rotate(-15deg) translateY(4px) !important;
+}
+#katban-corner-cat.katban-sleeping .k-ear-r {
+  transform: rotate(15deg) translateY(4px) !important;
+}
+@keyframes katban-sleep-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(2px); }
+}
+#katban-corner-cat.katban-sleeping svg {
+  animation: katban-sleep-bob 3s ease-in-out infinite !important;
+}
+/* SLEEPING Zs */
+#katban-corner-cat .k-sleep-zs {
+  opacity: 0 !important;
+}
+#katban-corner-cat.katban-sleeping .k-sleep-zs {
+  opacity: 1 !important;
+}
+
+@keyframes katban-z-fade {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.8); }
+  50% { opacity: 1; transform: translate(5px, -5px) scale(1.1); }
+  100% { opacity: 0; transform: translate(10px, -10px) scale(1.2); }
+}
+
+#katban-corner-cat.katban-sleeping .k-z1 { animation: katban-z-fade 3s ease-in-out infinite !important; }
+#katban-corner-cat.katban-sleeping .k-z2 { animation: katban-z-fade 3s ease-in-out 1s infinite !important; }
+#katban-corner-cat.katban-sleeping .k-z3 { animation: katban-z-fade 3s ease-in-out 2s infinite !important; }
+
+/* ── SCROLL animation (no bump) ── */
+@keyframes katban-scroll-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+#katban-corner-cat.katban-scrolling svg {
+  animation: katban-scroll-wiggle 0.4s ease-in-out infinite !important;
+}
+#katban-corner-cat.katban-scrolling .k-ear-l {
+  transform: rotate(-35deg) translateY(6px) !important;
+}
+#katban-corner-cat.katban-scrolling .k-ear-r {
+  transform: rotate(35deg) translateY(6px) !important;
+}
+#katban-corner-cat.katban-scrolling .k-pupil {
+  transform: scale(1.3, 1.3) !important;
+}
+
+/* Scurry animation removed by user request */
+
+/* ── SURPRISED (Textbox Focus) ── */
+#katban-corner-cat.katban-surprised .k-mouth-smile {
+  opacity: 0 !important;
+}
+#katban-corner-cat.katban-surprised .k-mouth-surprised {
+  opacity: 1 !important;
+}
+#katban-corner-cat.katban-surprised .k-ear-l {
+  transform: rotate(-10deg) translateY(-2px) !important;
+}
+#katban-corner-cat.katban-surprised .k-ear-r {
+  transform: rotate(10deg) translateY(-2px) !important;
+}
+#katban-corner-cat.katban-surprised .k-pupil {
+  transform: scale(1.4, 1.4) !important;
+}
+
+/* ── DANCING (Typing) ── */
+@keyframes katban-sway {
+  0%, 100% { transform: translate(100px, 0) rotate(0deg); }
+  25% { transform: translate(98px, 0) rotate(-5deg); }
+  75% { transform: translate(102px, 0) rotate(5deg); }
+}
+#katban-corner-cat.katban-dancing .k-cat-character {
+  animation: katban-sway 0.8s ease-in-out infinite !important;
+  transform-origin: 50px 100px !important;
+}
+
+/* ── EXHAUSTED ── */
+#katban-corner-cat.katban-exhausted .k-mouth-smile,
+#katban-corner-cat.katban-exhausted .k-mouth-surprised {
+  opacity: 0 !important;
+}
+#katban-corner-cat.katban-exhausted .k-mouth-exhausted {
+  opacity: 1 !important;
+}
+#katban-corner-cat.katban-exhausted .k-ear-l {
+  transform: rotate(-60deg) translateY(10px) !important;
+}
+#katban-corner-cat.katban-exhausted .k-ear-r {
+  transform: rotate(60deg) translateY(10px) !important;
+}
+#katban-corner-cat.katban-exhausted .k-pupil {
+  transform: scale(0.8, 0.4) translateY(-2px) !important;
+}
+
+@keyframes katban-breath-puff {
+  0%   { transform: scale(0.6) translate(0, 0); opacity: 0.3; }
+  50%  { transform: scale(1.2) translate(4px, 2px); opacity: 0.9; }
+  100% { transform: scale(0.6) translate(0, 0); opacity: 0.3; }
+}
+
+#katban-corner-cat.katban-exhausted .k-exhausted-breath {
+  transform-origin: 52px 77px !important;
+  animation: katban-breath-puff 1.2s ease-in-out infinite !important;
+}
+
+/* ── FLOATING LETTERS ── */
+.katban-floating-letter {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive, sans-serif !important;
+  font-size: 28px !important;
+  font-weight: bold !important;
+  pointer-events: none !important;
+  background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3) !important;
+  background-size: 200% auto !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  animation: katban-float-up 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+}
+
+@keyframes katban-float-up {
+  0% { transform: translateY(0) scale(0.5); opacity: 1; background-position: 0% 50%; }
+  50% { transform: translateY(-40px) scale(1.2) rotate(calc(var(--rot) * 1deg)); opacity: 1; }
+  100% { transform: translateY(-70px) scale(1) rotate(calc(var(--rot) * 2deg)); opacity: 0; background-position: 100% 50%; }
+}
+
+/* ── PEEKING (Password) ── */
+/* JS positions the cat on top of the input. Make it small and tilt it to look down. */
+#katban-corner-cat.katban-peeking {
+  transform: scale(0.65) translateY(12px) rotate(-18deg) !important;
+  transform-origin: bottom center !important;
+}
+/* Hide body, tail, tucked paws, box */
+#katban-corner-cat.katban-peeking .k-body,
+#katban-corner-cat.katban-peeking .k-tail,
+#katban-corner-cat.katban-peeking .k-tucked-paws,
+#katban-corner-cat.katban-peeking .k-box {
+  opacity: 0 !important;
+}
+/* Show standing paws gripping the edge */
+#katban-corner-cat.katban-peeking .k-paws {
+  opacity: 1 !important;
+}
+/* Suspicious squinted red eyes looking down directly at password */
+#katban-corner-cat.katban-peeking .k-pupil {
+  transform: translate(-1px, 4px) scale(1.8, 0.5) !important;
+  fill: #ff2222 !important;
+}
+#katban-corner-cat.katban-peeking #kat-shine-l,
+#katban-corner-cat.katban-peeking #kat-shine-r {
+  opacity: 0 !important;
+}
+/* Evil smirk visible, normal smile hidden */
+#katban-corner-cat.katban-peeking .k-mouth-smile {
+  opacity: 0 !important;
+}
+#katban-corner-cat.katban-peeking .k-mouth-smirk {
+  opacity: 1 !important;
+}
+#katban-corner-cat.katban-peeking .k-mouth-smirk,
+#katban-corner-cat .k-mouth-smirk {
+  transition: opacity 0.25s ease !important;
+}
+/* Ears slightly alert */
+#katban-corner-cat.katban-peeking .k-ear-l {
+  transform: rotate(-8deg) !important;
+}
+#katban-corner-cat.katban-peeking .k-ear-r {
+  transform: rotate(8deg) !important;
+}
+
+/* Scanner Rays */
+#katban-corner-cat .k-scanner-rays {
+  opacity: 0 !important;
+  transition: opacity 0.3s ease !important;
+}
+
+@keyframes katban-scan-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+#katban-corner-cat.katban-peeking .k-scanner-rays {
+  opacity: 1 !important;
+  animation: katban-scan-pulse 2s ease-in-out infinite !important;
+}
+
+#katban-corner-cat.katban-peeking.katban-look-away .k-scanner-rays {
+  opacity: 0 !important;
+  animation: none !important;
+}
+
+/* ── LOOK AWAY (When cursor is directly over peeking cat) ── */
+/* Cat looks innocent when caught snooping */
+/* Head stops tilting */
+#katban-corner-cat.katban-peeking.katban-look-away .k-head {
+  transform: rotate(0deg) !important;
+  transform-origin: 50% 80% !important;
+  transform-box: fill-box !important;
+}
+/* Ears perk up innocent */
+#katban-corner-cat.katban-peeking.katban-look-away .k-ear-l {
+  transform: rotate(0deg) !important;
+}
+#katban-corner-cat.katban-peeking.katban-look-away .k-ear-r {
+  transform: rotate(0deg) !important;
+}
+/* Eyes go wide & innocent, color goes back to normal, looking straight */
+#katban-corner-cat.katban-peeking.katban-look-away .k-pupil {
+  transform: translate(0, 0) scale(1, 1) !important;
+  fill: var(--cat-pupil, #333) !important;
+}
+#katban-corner-cat.katban-peeking.katban-look-away #kat-shine-l,
+#katban-corner-cat.katban-peeking.katban-look-away #kat-shine-r {
+  opacity: 1 !important;
+}
+/* Smirk disappears, normal smile returns */
+#katban-corner-cat.katban-peeking.katban-look-away .k-mouth-smirk {
+  opacity: 0 !important;
+}
+#katban-corner-cat.katban-peeking.katban-look-away .k-mouth-smile {
+  opacity: 1 !important;
+}
+
+/* ── ON PROP (Cardboard Box Frame-by-Frame Animation) ── */
+#katban-corner-cat.katban-on-prop .k-box-back,
+#katban-corner-cat.katban-on-prop .k-box-front {
+  opacity: 1 !important;
+}
+
+#katban-corner-cat.katban-on-prop .k-cat-character {
+  animation: katban-run-x 1.5s linear forwards !important;
+}
+#katban-corner-cat.katban-on-prop .k-head-group {
+  animation: katban-head-bob 1.5s linear forwards !important;
+}
+
+/* LEAVING PROP (Reverse Animation) */
+#katban-corner-cat.katban-leaving-prop .k-box-back,
+#katban-corner-cat.katban-leaving-prop .k-box-front {
+  opacity: 1 !important;
+}
+#katban-corner-cat.katban-leaving-prop .k-cat-character {
+  animation: katban-run-x-reverse 1.5s linear forwards !important;
+}
+#katban-corner-cat.katban-leaving-prop .k-head-group {
+  animation: katban-head-bob-reverse 1.5s linear forwards !important;
+}
+#katban-corner-cat.katban-leaving-prop .k-pose-loaf {
+  animation: katban-pose-loaf-reverse 1.5s step-end forwards !important;
+}
+#katban-corner-cat.katban-leaving-prop .k-pose-run1 {
+  animation: katban-pose-run1-reverse 1.5s step-end forwards !important;
+}
+#katban-corner-cat.katban-leaving-prop .k-pose-run2 {
+  animation: katban-pose-run2-reverse 1.5s step-end forwards !important;
+}
+#katban-corner-cat.katban-leaving-prop .k-pose-reach {
+  animation: katban-pose-reach-reverse 1.5s step-end forwards !important;
+}
+#katban-corner-cat.katban-leaving-prop .k-pose-climb {
+  animation: katban-pose-climb-reverse 1.5s step-end forwards !important;
+}
+
+#katban-corner-cat.katban-on-prop .k-pose-loaf {
+  animation: katban-pose-loaf 1.5s step-end forwards !important;
+}
+#katban-corner-cat.katban-on-prop .k-pose-run1 {
+  animation: katban-pose-run1 1.5s step-end forwards !important;
+}
+#katban-corner-cat.katban-on-prop .k-pose-run2 {
+  animation: katban-pose-run2 1.5s step-end forwards !important;
+}
+#katban-corner-cat.katban-on-prop .k-pose-reach {
+  animation: katban-pose-reach 1.5s step-end forwards !important;
+}
+#katban-corner-cat.katban-on-prop .k-pose-climb {
+  animation: katban-pose-climb 1.5s step-end forwards !important;
+}
+
+@keyframes katban-run-x {
+  0%   { transform: translate(100px, 0); }
+  40%  { transform: translate(30px, 0); }
+  60%  { transform: translate(30px, 0); }
+  80%  { transform: translate(30px, -15px); }
+  100% { transform: translate(30px, -15px); }
+}
+
+@keyframes katban-head-bob {
+  0%   { transform: translate(0, 0); }
+  10%  { transform: translate(0, -3px); }
+  20%  { transform: translate(0, 2px); }
+  30%  { transform: translate(0, -3px); }
+  40%  { transform: translate(-10px, 5px); } /* reach */
+  60%  { transform: translate(-20px, -5px) rotate(-15deg); } /* climb */
+  80%  { transform: translate(-5px, 15px) rotate(0); } /* inside box */
+  100% { transform: translate(-5px, 15px) rotate(0); }
+}
+
+@keyframes katban-pose-loaf {
+  0%   { opacity: 1; }
+  10%  { opacity: 0; }
+  80%  { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes katban-pose-run1 {
+  0%   { opacity: 0; }
+  10%  { opacity: 1; }
+  20%  { opacity: 0; }
+  30%  { opacity: 1; }
+  40%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes katban-pose-run2 {
+  0%   { opacity: 0; }
+  20%  { opacity: 1; }
+  30%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes katban-pose-reach {
+  0%   { opacity: 0; }
+  40%  { opacity: 1; }
+  60%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes katban-pose-climb {
+  0%   { opacity: 0; }
+  60%  { opacity: 1; }
+  80%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* ── Definition bubble ── */
+#katban-def-bubble {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  background: #1e1e1e !important;
+  color: #f0f0f0 !important;
+  border: 1px solid #444 !important;
+  border-left: 2px solid #a0c4a0 !important;
+  padding: 8px 10px !important;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+  max-width: 220px !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  transition: opacity 0.18s ease !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+#katban-def-bubble.katban-visible {
+  opacity: 1 !important;
+}
+#katban-def-bubble strong {
+  display: block !important;
+  font-size: 10px !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  margin-bottom: 4px !important;
+  color: #a0c4a0 !important;
+  font-weight: bold !important;
+}
+
+/* ── Sneak Cat on Definition Bubble ── */
+#katban-sneak-cat {
+  position: absolute !important;
+  bottom: 100% !important;
+  right: 15px !important;
+  width: 50px !important;
+  height: 50px !important;
+  pointer-events: none !important;
+  margin-bottom: -5px !important;
+}
+
+#katban-sneak-cat svg {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible !important;
+  display: block !important;
+}
+
+.k-sneak-tail {
+  transform-box: view-box !important;
+  transform-origin: 80px 70px !important;
+  animation: katban-tail-wag 3s infinite ease-in-out !important;
+}
+
+@keyframes katban-tail-wag {
+  0% { transform: rotate(15deg); }
+  50% { transform: rotate(-25deg); }
+  100% { transform: rotate(15deg); }
+}
+
+/* ── Judgement toast ── */
+#katban-judge-toast {
+  position: fixed !important;
+  bottom: 82px !important;
+  right: 20px !important;
+  z-index: 2147483647 !important;
+  background: #1e1e1e !important;
+  color: #f0f0f0 !important;
+  border: 1px solid #c4a87a !important;
+  padding: 6px 10px !important;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+  font-size: 11px !important;
+  opacity: 0 !important;
+  transition: opacity 0.25s ease !important;
+  pointer-events: none !important;
+  max-width: 180px !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+#katban-judge-toast.katban-visible {
+  opacity: 1 !important;
+}
+
+/* ── Blocker overlay ── */
+#katban-blocker {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483646 !important;
+  background: #111 !important;
+  display: none !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 20px !important;
+}
+#katban-blocker.katban-active {
+  display: flex !important;
+}
+#katban-blocker svg {
+  width: 100px !important;
+  height: 100px !important;
+}
+#katban-blocker h1 {
+  color: #f0f0f0 !important;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+  font-size: 22px !important;
+  font-weight: 300 !important;
+  letter-spacing: 0.1em !important;
+  margin: 0 !important;
+  text-align: center !important;
+  border: none !important;
+}
+#katban-blocker p {
+  color: #555 !important;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+  font-size: 13px !important;
+  margin: 0 !important;
+  border: none !important;
+}
+
+/* ── Cat Styles ── */
+:root.katban-style-primary {
+  --cat-main: #c8c8c8 !important;
+  --cat-stroke: #777 !important;
+  --cat-inner: #c0a8a8 !important;
+  --cat-nose: #bbb !important;
+  --cat-whiskers: #999 !important;
+  --cat-pupil: #333 !important;
+}
+:root.katban-style-pink {
+  --cat-main: #ffb6c1 !important;
+  --cat-stroke: #d87093 !important;
+  --cat-inner: #ffc0cb !important;
+  --cat-nose: #ff1493 !important;
+  --cat-whiskers: #d87093 !important;
+  --cat-pupil: #8b0a50 !important;
+}
+:root.katban-style-black {
+  --cat-main: #3a3a3a !important;
+  --cat-stroke: #1a1a1a !important;
+  --cat-inner: #5a5a5a !important;
+  --cat-nose: #0f0f0f !important;
+  --cat-whiskers: #666666 !important;
+  --cat-pupil: #000000 !important;
+}
+:root.katban-style-orange {
+  --cat-main: #ffa500 !important;
+  --cat-stroke: #cc8400 !important;
+  --cat-inner: #ffcc80 !important;
+  --cat-nose: #e65c00 !important;
+  --cat-whiskers: #cc8400 !important;
+  --cat-pupil: #4d2600 !important;
+}
+:root.katban-style-custom-tabby {
+  --cat-main: #685f54 !important; /* fallback */
+  --cat-stroke: #151515 !important;
+  --cat-inner: #c0a8a8 !important;
+  --cat-nose: #e8a2a2 !important;
+  --cat-whiskers: #dddddd !important;
+  --cat-pupil: #111111 !important;
+  --cat-eye-bg: #a3b86c !important;
+  --cat-belly: #ffffff !important;
+  --cat-muzzle: #ffffff !important;
+  --cat-stripes: #2b2725 !important;
+  --cat-collar-color: #800080 !important;
+  --cat-bell-color: #9370DB !important;
+  --cat-tail: #2b2725 !important;
+  --cat-paws: #ffffff !important;
+}
+
+:root.katban-style-custom-tabby #katban-corner-cat {
+  --cat-main: url(#kat-brindle) !important;
+}
+:root.katban-style-custom-tabby #katban-blocker {
+  --cat-main: url(#blk-brindle) !important;
+}
+:root.katban-style-custom-tabby #katban-def-bubble {
+  --cat-main: url(#katban-sneak-brindle) !important;
+}
+
+@keyframes katban-run-x-reverse {
+  0%   { transform: translate(30px, -15px); }
+  20%  { transform: translate(30px, -15px); }
+  40%  { transform: translate(30px, 0); }
+  60%  { transform: translate(30px, 0); }
+  100% { transform: translate(100px, 0); }
+}
+
+@keyframes katban-head-bob-reverse {
+  0%   { transform: translate(-5px, 15px) rotate(0); }
+  20%  { transform: translate(-5px, 15px) rotate(0); }
+  40%  { transform: translate(-20px, -5px) rotate(-15deg); }
+  60%  { transform: translate(-10px, 5px); }
+  70%  { transform: translate(0, -3px); }
+  80%  { transform: translate(0, 2px); }
+  90%  { transform: translate(0, -3px); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes katban-pose-loaf-reverse {
+  0%   { opacity: 1; }
+  10%  { opacity: 1; }
+  20%  { opacity: 0; }
+  90%  { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes katban-pose-run1-reverse {
+  0%   { opacity: 0; }
+  20%  { opacity: 0; }
+  30%  { opacity: 1; }
+  40%  { opacity: 0; }
+  70%  { opacity: 1; }
+  80%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes katban-pose-run2-reverse {
+  0%   { opacity: 0; }
+  20%  { opacity: 0; }
+  30%  { opacity: 0; }
+  40%  { opacity: 1; }
+  50%  { opacity: 0; }
+  70%  { opacity: 0; }
+  80%  { opacity: 1; }
+  90%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes katban-pose-reach-reverse {
+  0%   { opacity: 0; }
+  10%  { opacity: 0; }
+  20%  { opacity: 1; }
+  30%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes katban-pose-climb-reverse {
+  0%   { opacity: 0; }
+  10%  { opacity: 1; }
+  20%  { opacity: 0; }
+  100% { opacity: 0; }
+}
