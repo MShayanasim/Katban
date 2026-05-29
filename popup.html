@@ -90,6 +90,8 @@
 
       <!-- Mouth -->
       <path class="mouth-smile" d="M 44 74 Q 47 78 50 75 Q 53 78 56 74" stroke="var(--cat-stroke, #777)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <path class="mouth-sad-real" d="M 44 76 Q 47 74 50 75 Q 53 74 56 76" stroke="var(--cat-stroke, #777)" stroke-width="1.5" fill="none" stroke-linecap="round" style="display: none;"/>
+      <path class="mouth-happy-real" d="M 43 73 Q 47 80 50 76 Q 53 80 57 73" stroke="var(--cat-stroke, #777)" stroke-width="2" fill="none" stroke-linecap="round" style="display: none;"/>
       <rect class="mouth-scared" x="46" y="74" width="8" height="6" fill="var(--cat-pupil, #333)" shape-rendering="crispEdges" opacity="0"/>
 
       <!-- Whiskers -->
@@ -264,6 +266,13 @@
     </div>
   </div>
 
+  <div class="rant-header" id="btn-rant-toggle-main" style="border-bottom: none; border-top: 1px solid var(--border); margin-top: 10px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div id="rant-header-cat-main" style="width: 32px; height: 32px;"></div>
+      <span class="section-label">VENT TO KATBAN</span>
+    </div>
+  </div>
+
   <footer class="made-by">
     <div class="cat-fact-wrap" title="Daily Cat Fact">
       <span id="cat-fact">Loading fact...</span>
@@ -275,7 +284,7 @@
 
   <!-- ── Rant Overlay ── -->
   <div class="rant-overlay" id="rant-overlay">
-    <div class="rant-header" id="btn-rant-toggle">
+    <div class="rant-header" id="btn-rant-toggle-close">
       <div style="display: flex; align-items: center; gap: 10px;">
         <div id="rant-header-cat" style="width: 32px; height: 32px;"></div>
         <span class="section-label">VENT TO KATBAN</span>

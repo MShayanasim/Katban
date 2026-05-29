@@ -725,7 +725,8 @@ if (catFactSpan) {
 
 // ── Emotional Support Features ─────────────────────
 
-const btnRantToggle = document.getElementById('btn-rant-toggle');
+const btnRantToggleMain = document.getElementById('btn-rant-toggle-main');
+const btnRantToggleClose = document.getElementById('btn-rant-toggle-close');
 const rantOverlay = document.getElementById('rant-overlay');
 const rantInput = document.getElementById('rant-input');
 const btnSubmitRant = document.getElementById('btn-submit-rant');
@@ -774,11 +775,13 @@ moodBtns.forEach(btn => {
 });
 
 // Rant Box Logic
-btnRantToggle.addEventListener('click', () => {
-  rantOverlay.classList.toggle('active');
-  if (rantOverlay.classList.contains('active')) {
-    setTimeout(() => rantInput.focus(), 300);
-  }
+btnRantToggleMain.addEventListener('click', () => {
+  rantOverlay.classList.add('active');
+  setTimeout(() => rantInput.focus(), 300);
+});
+
+btnRantToggleClose.addEventListener('click', () => {
+  rantOverlay.classList.remove('active');
 });
 
 function spawnHearts() {
@@ -869,6 +872,11 @@ headerCatSvg.removeAttribute('id');
 headerCatSvg.classList.remove('mood-stressed', 'mood-tired', 'cat-chomp');
 document.getElementById('rant-header-cat').appendChild(headerCatSvg);
 
+const headerCatSvgMain = catSvg.cloneNode(true);
+headerCatSvgMain.removeAttribute('id');
+headerCatSvgMain.classList.remove('mood-stressed', 'mood-tired', 'cat-chomp');
+document.getElementById('rant-header-cat-main').appendChild(headerCatSvgMain);
+
 async function submitRant() {
   const text = rantInput.value.trim();
   if (!text) return;
@@ -900,9 +908,9 @@ async function submitRant() {
     // Determine emotion
     let mood = 'default';
     const lower = reply.toLowerCase();
-    if (/(happy|proud|great|good|glad|wonderful|awesome)/i.test(lower)) {
+    if (/(happy|proud|great|good|glad|wonderful|awesome|love|thank|purrfect|pawsitive|smile)/i.test(lower)) {
       mood = 'happy';
-    } else if (/(sorry|safe|hurt|tough|hard|worry|worried|sad|difficult)/i.test(lower)) {
+    } else if (/(sorry|safe|hurt|tough|hard|worry|worried|sad|difficult|unacceptable|betrayal|infidelity|raw|pain|struggle|frustrated|frustrating)/i.test(lower)) {
       mood = 'sad';
     }
 
