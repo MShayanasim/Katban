@@ -2,9 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <!-- Content Security Policy — blocks XSS by preventing inline scripts and
+       restricting network connections to only the Katban AI worker.
+       This mirrors the manifest.json CSP for defense-in-depth. -->
+  <meta http-equiv="Content-Security-Policy"
+        content="script-src 'self'; object-src 'none'; connect-src 'self' https://katban-ai-worker.shayanasim-dev.workers.dev;">
   <title>Katban</title>
   <link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
   <!-- Treat Button -->
   <button class="icon-btn btn-treat-open" id="btn-treat" title="Give Treat">
@@ -281,6 +287,8 @@
   </footer>
 
   <div id="treat-toast" class="toast hidden"></div>
+  <div id="pin-limit-toast" class="toast hidden">Max 3 items can be pinned.</div>
+
 
   <!-- ── Rant Overlay ── -->
   <div class="rant-overlay" id="rant-overlay">
@@ -300,7 +308,7 @@
       <div id="rant-paper" class="hidden">📝</div>
     </div>
   </div>
-
+  <script src="crypto.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

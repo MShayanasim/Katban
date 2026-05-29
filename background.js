@@ -7,6 +7,29 @@ const BREAK_DURATION = 5 * 60; // 5 minutes in seconds
 
 let sharedCatEnabled = false;
 
+// ── Active Task State ─────────────────────────
+// Declared BEFORE getBrain() to prevent temporal dead zone.
+// The async storage read below populates it before any messages can arrive.
+let currentActiveTask = null;
+let _storageLoaded = false;
+
+chrome.storage.local.get(['katbanActiveTask'], (data) => {
+  currentActiveTask = data.katbanActiveTask || null;
+  _storageLoaded = true;
+  // Correct any brains created before storage resolved (edge case: fast message on install)
+  brains.forEach((brain) => {
+    if (brain.state === null && currentActiveTask) {
+      setBrainState(brain, 'holding-task');
+    }
+  });
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.katbanActiveTask !== undefined) {
+    currentActiveTask = changes.katbanActiveTask.newValue || null;
+  }
+});
+
 // ── Brain Management ──────────────────────────
 const brains = new Map(); // tabId or 'global' -> state object
 
@@ -22,6 +45,9 @@ function scheduleProp(id) {
 function getBrain(tabId) {
   const id = sharedCatEnabled ? 'global' : tabId;
   if (!brains.has(id)) {
+    // Use currentActiveTask safely — it's declared above and will be null
+    // until storage resolves, at which point the storage callback above
+    // corrects any brains that were created with stale null state.
     brains.set(id, {
       id: id,
       state: currentActiveTask ? 'holding-task' : null,
@@ -35,15 +61,6 @@ function getBrain(tabId) {
   return brains.get(id);
 }
 
-let currentActiveTask = null;
-chrome.storage.local.get(['katbanActiveTask'], (data) => {
-  currentActiveTask = data.katbanActiveTask || null;
-});
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes.katbanActiveTask !== undefined) {
-    currentActiveTask = changes.katbanActiveTask.newValue || null;
-  }
-});
 
 function broadcastState(brain) {
   if (brain.id === 'global') {
@@ -80,6 +97,13 @@ function startDanceLoop(brain) {
   let danceStartTime = Date.now();
   
   brain.danceInterval = setInterval(() => {
+    // Guard: if the brain was deleted (tab closed) between ticks, self-terminate.
+    if (!brains.has(brain.id)) {
+      clearInterval(brain.danceInterval);
+      brain.danceInterval = null;
+      return;
+    }
+
     if (brain.danceBankMs > 0) {
       brain.danceBankMs -= 100;
       
@@ -126,7 +150,9 @@ chrome.runtime.onInstalled.addListener(() => {
       sharedCatEnabled: false,
       globalCatState: null,
       catStyle: 'primary',
-      focusSessions: []
+      focusSessions: [],
+      muteOverlaySound: false  // Missing default — new installs need this to avoid undefined toggle state
+
     };
     const toSet = {};
     for (const key in defaults) {
@@ -248,6 +274,11 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 
 // ── Message Handling from popup & content ──────
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  // Only process messages originating from this extension itself.
+  // This prevents a malicious third-party extension from triggering
+  // Katban's timer, site blocker, or cat state via sendMessage.
+  if (sender.id !== chrome.runtime.id) return false;
+
   switch (msg.type) {
     case 'START_FOCUS': {
       const duration = msg.duration; // -1 for unlimited, or seconds
@@ -261,7 +292,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         startTime: now,
         endTime: endTime,
         isUnlimited: isUnlimited,
-        customDuration: duration
+        // Store the effective timed duration (never -1) so the idle UI can
+        // restore the last used time. isUnlimited handles the unlimited case.
+        customDuration: effectiveDuration
       });
 
       if (!isUnlimited) {
@@ -271,22 +304,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       notifyAllTabs({ type: 'TIMER_STATE', state: 'focus' });
       blockCurrentTabs();
       sendResponse({ ok: true });
-      break;
+      return false; // sync response — close channel immediately
     }
 
     case 'STOP_TIMER': {
       chrome.storage.local.get(['timerState', 'startTime'], (data) => {
         if (data && data.timerState === 'focus') {
-          const focusDurationMs = Date.now() - (data.startTime || Date.now());
-          const focusMinutes = Math.round(focusDurationMs / 60000);
-          
-          if (focusMinutes > 0) {
-            chrome.storage.local.get(['focusSessions'], (sessData) => {
-              const sessions = sessData.focusSessions || [];
-              sessions.push({ timestamp: Date.now(), minutes: focusMinutes });
-              const sixtyDaysAgo = Date.now() - (60 * 24 * 60 * 60 * 1000);
-              chrome.storage.local.set({ focusSessions: sessions.filter(s => s.timestamp > sixtyDaysAgo) });
-            });
+          // Guard: if startTime is missing, skip session recording rather than
+          // computing Date.now() - Date.now() = 0 and silently discarding the session.
+          if (data.startTime) {
+            const focusDurationMs = Date.now() - data.startTime;
+            const focusMinutes = Math.round(focusDurationMs / 60000);
+            
+            if (focusMinutes > 0) {
+              chrome.storage.local.get(['focusSessions'], (sessData) => {
+                const sessions = sessData.focusSessions || [];
+                sessions.push({ timestamp: Date.now(), minutes: focusMinutes });
+                const sixtyDaysAgo = Date.now() - (60 * 24 * 60 * 60 * 1000);
+                chrome.storage.local.set({ focusSessions: sessions.filter(s => s.timestamp > sixtyDaysAgo) });
+              });
+            }
           }
         }
         
@@ -298,9 +335,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         });
         chrome.alarms.clear('pomodoroEnd');
         notifyAllTabs({ type: 'TIMER_STATE', state: 'idle' });
+        // Respond AFTER all state is saved and tabs are notified
+        sendResponse({ ok: true });
       });
-      sendResponse({ ok: true });
-      break;
+      return true; // async response — keep channel open until callback fires
     }
 
     case 'UPDATE_SHARED_SETTING': {
@@ -320,12 +358,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       if (sharedCatEnabled) {
         getBrain('global');
       }
-      break;
+      return false;
     }
 
     case 'CAT_EVENT': {
       const tabId = sender.tab ? sender.tab.id : null;
-      if (!tabId) break;
+      if (!tabId) return false;
 
       const brain = getBrain(tabId);
 
@@ -359,7 +397,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           chrome.tabs.sendMessage(tabId, { type: 'SYNC_CAT_STATE', state: brain.state }).catch(() => {});
           break;
       }
-      break;
+      return false;
     }
 
     case 'ACTIVE_TASK_UPDATE': {
@@ -386,18 +424,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           }
         }
       }
-      break;
+      return false;
     }
 
     case 'COPY_EVENT': {
       const tabId = sender.tab ? sender.tab.id : null;
-      if (!tabId) break;
+      if (!tabId) return false;
 
-      chrome.storage.local.get(['clipboardHistory'], (data) => {
+      chrome.storage.local.get(['clipboardHistory'], async (data) => {
         if (chrome.runtime.lastError) return;
         data = data || {};
         let history = data.clipboardHistory || [];
-        history.unshift({ text: msg.text, timestamp: Date.now() });
+        
+        // Encrypt the text before storing it
+        let textToStore = msg.text;
+        // If it's already marked as protected, don't double encrypt
+        if (msg.text !== '[Sensitive Data Protected]') {
+          textToStore = await globalThis.katbanEncrypt(msg.text) || msg.text;
+        }
+
+        // Assign a unique id so deletion is always precise
+        const clipId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        history.unshift({ id: clipId, text: textToStore, timestamp: Date.now() });
         
         const pinned = history.filter(item => item.pinned);
         const unpinned = history.filter(item => !item.pinned);
@@ -411,12 +459,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         setBrainState(brain, 'judging');
         // Content script handles the 3.2s revert timeout locally
       }
-      break;
+      return false;
     }
-  }
 
-  return true;
+    default:
+      return false;
+  }
 });
+
 
 // ── Proper hostname-based site blocking ────────
 function isBlocked(url, blockedSites) {

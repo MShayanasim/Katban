@@ -8,15 +8,11 @@
   'use strict';
 
   // ── HOT-RELOAD CLEANUP ──
-  // Dispatch event to kill any existing old script before initializing
+  // Dispatch event to kill any existing old script's DOM elements and listeners.
+  // This is the single source of truth for deduplication — we do NOT use
+  // window.__katbanInjected because that blocks re-injection after service worker restarts.
   document.dispatchEvent(new CustomEvent('katban-unload-old'));
 
-  try {
-    if (window.__katbanInjected) return;
-    window.__katbanInjected = true;
-  } catch (e) {
-    // Some pages freeze the window object; proceed anyway
-  }
 
   let isInvalidated = false;
 
@@ -345,7 +341,7 @@
       cornerCat.classList.remove('katban-midnight');
     }
   }
-  setInterval(checkMidnightMode, 60000);
+  const midnightInterval = setInterval(checkMidnightMode, 60000);
 
   // Load saved setting
   chrome.storage.local.get(['pageCatEnabled', 'meaningCatEnabled', 'sharedCatEnabled', 'catStyle'], (data) => {
@@ -370,6 +366,11 @@
     try {
       chrome.runtime.onMessage.removeListener(messageListener);
     } catch (e) {}
+    
+    // Clear all timers and intervals to prevent stale callbacks
+    clearInterval(midnightInterval);
+    if (typeof scrollTimer !== 'undefined') clearTimeout(scrollTimer);
+    if (typeof defTimeout !== 'undefined') clearTimeout(defTimeout);
     
     document.removeEventListener('katban-unload-old', unloadListener);
   };
@@ -768,8 +769,27 @@
 
   document.addEventListener('copy', () => {
     if (isInvalidated) return;
-    const copied = window.getSelection()?.toString() || '';
+    
+    // 1. SMART FILTER: Ignore completely if copying from a password field
+    const activeEl = document.activeElement;
+    if (activeEl && activeEl.tagName === 'INPUT' && activeEl.type === 'password') {
+      return; // Do not log this
+    }
+
+    let copied = window.getSelection()?.toString() || '';
     if (!copied) return;
+
+    // 2. SMART FILTER: Redact sensitive formats (Credit Cards and JWT tokens)
+    const jwtRegex = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]*$/;
+    // Strict CC regex for common prefixes (Visa 4, Mastercard 5, Amex 3, Discover 6)
+    const ccRegex = /^(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(?:011|5[0-9][0-9])[0-9]{12})$/;
+    
+    // Strip spaces/dashes to check CC regex easily
+    const cleanForCC = copied.replace(/[\s-]/g, '');
+
+    if (jwtRegex.test(copied.trim()) || ccRegex.test(cleanForCC)) {
+      copied = '[Sensitive Data Protected]';
+    }
 
     chrome.storage.local.get(['clipboardHistory'], (data) => {
       if (chrome.runtime.lastError) return;
@@ -967,6 +987,11 @@
   const messageListener = (msg, sender, sendResponse) => {
     try {
       if (isInvalidated) return;
+
+      // Defense-in-depth: explicitly reject messages not from this extension.
+      // chrome.runtime.onMessage already scopes to same-extension only,
+      // but this guard protects against edge cases like cross-extension messaging bugs.
+      if (sender.id !== chrome.runtime.id) return;
 
       if (msg.type === 'BLOCK_PAGE') {
         blocker.classList.add('katban-active');
@@ -1261,7 +1286,14 @@
     };
     
     document.addEventListener('mousemove', moveListener);
-    document.addEventListener('click', endLaserMode); // click anywhere to stop
+    // Defer click-to-stop registration until AFTER the current click event (which
+    // triggered activateLaserMode) has fully propagated — otherwise it fires immediately.
+    setTimeout(() => {
+      if (laserModeActive) {
+        document.addEventListener('click', endLaserMode); // click anywhere to stop
+      }
+    }, 0);
+
     
     let lastTime = performance.now();
     
@@ -1305,7 +1337,7 @@
   // ── TYPING ───────────────────────────────────
   document.addEventListener('keydown', (e) => {
     if (isInvalidated || !pageCatOn || catState === 'peeking' || catState === 'judging') return;
-    if (e.key.length !== 1) return; // Only printable chars
+    if (!e.key || e.key.length !== 1) return; // Safely ignore autofill/synthetic events
     
     safeSend({ type: 'CAT_EVENT', event: 'TYPING' });
 

@@ -35,5 +35,8 @@
       },
       "description": "Open Katban Popup"
     }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self' https://katban-ai-worker.shayanasim-dev.workers.dev;"
   }
 }

@@ -314,7 +314,7 @@ btnSaveSites.addEventListener('click', () => {
 });
 
 // ── Clipboard History ───────────────────────────
-function renderClipboard(history) {
+async function renderClipboard(history) {
   clipList.innerHTML = '';
   if (!history || history.length === 0) {
     clipList.innerHTML = '<li class="clip-empty">Nothing copied yet.</li>';
@@ -329,6 +329,17 @@ function renderClipboard(history) {
   });
 
   const numPinned = history.filter(item => item.pinned).length;
+
+  // Pre-decrypt all text asynchronously before rendering the DOM
+  for (const item of history) {
+    if (!item.decryptedText) {
+      if (item.text === '[Sensitive Data Protected]') {
+        item.decryptedText = item.text;
+      } else {
+        item.decryptedText = await globalThis.katbanDecrypt(item.text) || item.text;
+      }
+    }
+  }
 
   history.forEach((item) => {
     const li = document.createElement('li');
@@ -356,12 +367,29 @@ function renderClipboard(history) {
     
     pinBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (!item.pinned && numPinned >= 3) {
-        alert('Max 3 items can be pinned.');
+      if (item.pinned) {
+        // Unpinning is always allowed — toggle immediately
+        item.pinned = false;
+        chrome.storage.local.set({ clipboardHistory: history });
         return;
       }
-      item.pinned = !item.pinned;
-      chrome.storage.local.set({ clipboardHistory: history });
+      // Re-read from storage to get the live pin count, preventing stale count bugs
+      chrome.storage.local.get(['clipboardHistory'], (freshData) => {
+        const freshHistory = freshData.clipboardHistory || [];
+        const livePinnedCount = freshHistory.filter(h => h.pinned).length;
+        if (livePinnedCount >= 3) {
+          // Show a non-blocking inline toast instead of alert()
+          const pinWarn = document.getElementById('pin-limit-toast');
+          if (pinWarn) {
+            pinWarn.classList.remove('hidden');
+            clearTimeout(pinWarn._hideTimer);
+            pinWarn._hideTimer = setTimeout(() => pinWarn.classList.add('hidden'), 2500);
+          }
+          return;
+        }
+        item.pinned = true;
+        chrome.storage.local.set({ clipboardHistory: history });
+      });
     });
 
     const delBtn = document.createElement('button');
@@ -373,7 +401,10 @@ function renderClipboard(history) {
     
     delBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const newHistory = history.filter(h => h.timestamp !== item.timestamp || h.text !== item.text);
+      // Use unique id when available (new items); fall back to timestamp+text for legacy items
+      const newHistory = item.id
+        ? history.filter(h => h.id !== item.id)
+        : history.filter(h => h.timestamp !== item.timestamp || h.text !== item.text);
       chrome.storage.local.set({ clipboardHistory: newHistory });
     });
 
@@ -385,18 +416,18 @@ function renderClipboard(history) {
 
     const preview = document.createElement('div');
     preview.className = 'clip-preview';
-    preview.textContent = item.text.slice(0, 100) + (item.text.length > 100 ? '…' : '');
+    preview.textContent = item.decryptedText.slice(0, 100) + (item.decryptedText.length > 100 ? '…' : '');
 
     // Drag to copy
     li.addEventListener('dragstart', (e) => {
-      e.dataTransfer.setData('text/plain', item.text);
+      e.dataTransfer.setData('text/plain', item.decryptedText);
       e.dataTransfer.effectAllowed = 'copy';
     });
 
     // Click to copy
     li.addEventListener('click', async () => {
       try {
-        await navigator.clipboard.writeText(item.text);
+        await navigator.clipboard.writeText(item.decryptedText);
         const originalText = preview.textContent;
         preview.textContent = 'Copied to clipboard!';
         preview.style.color = 'var(--accent)';
@@ -440,8 +471,11 @@ chrome.storage.local.get(['pageCatEnabled', 'meaningCatEnabled', 'sharedCatEnabl
 });
 
 function broadcastSettings() {
+  // Only send to http/https tabs — chrome:// and other internal pages
+  // don't have content scripts and will throw errors we'd have to suppress anyway.
   chrome.tabs.query({}, (tabs) => {
     tabs.forEach(tab => {
+      if (!tab.id || !tab.url || !/^https?:\/\//.test(tab.url)) return;
       chrome.tabs.sendMessage(tab.id, {
         type: 'SETTINGS_UPDATE',
         pageCatEnabled: pageCatToggle.checked,
@@ -718,8 +752,11 @@ const CAT_FACTS = [
 const catFactSpan = document.getElementById('cat-fact');
 if (catFactSpan) {
   const today = new Date();
-  // Use a mix of year, month, and day to pick a stable index for the whole day
-  const index = (today.getFullYear() + today.getMonth() + today.getDate()) % CAT_FACTS.length;
+  // Use epoch day number (not year+month+day sum which is non-uniform) so each
+  // cat fact is equally likely over a sufficiently long period.
+  const epochDay = Math.floor(today.getTime() / 86400000);
+  // Multiplicative hash for better distribution across the facts array
+  const index = ((epochDay * 2654435761) >>> 0) % CAT_FACTS.length;
   catFactSpan.textContent = "🐾 Fact: " + CAT_FACTS[index];
 }
 
@@ -812,11 +849,20 @@ async function analyzeRant(messages) {
   
   try {
     // Layer 1 & 2: Try Cloudflare Backend (Groq/Gemini)
-    const response = await fetch(BACKEND_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: messages })
-    });
+    // Use an AbortController with a 15s timeout so the popup never hangs indefinitely
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    let response;
+    try {
+      response = await fetch(BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: messages }),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
     if (!response.ok) throw new Error('API Rate Limit or Offline');
     const data = await response.json();
     return data.reply;
@@ -880,7 +926,12 @@ document.getElementById('rant-header-cat-main').appendChild(headerCatSvgMain);
 async function submitRant() {
   const text = rantInput.value.trim();
   if (!text) return;
+  // Prevent concurrent submissions that would corrupt chatHistory across overlapping awaits
+  if (btnSubmitRant.disabled) return;
   
+  btnSubmitRant.disabled = true;
+  rantInput.disabled = true;
+
   rantInput.value = '';
   
   // Append user message
@@ -894,7 +945,15 @@ async function submitRant() {
   rantPaper.classList.add('animate-fly-paper');
   
   // 2. Process AI in background
-  const reply = await analyzeRant(chatHistory);
+  let reply;
+  try {
+    reply = await analyzeRant(chatHistory);
+  } finally {
+    // Always re-enable input regardless of success or failure
+    btnSubmitRant.disabled = false;
+    rantInput.disabled = false;
+    rantInput.focus();
+  }
   
   chatHistory.push({ role: 'assistant', content: reply });
   if (chatHistory.length > 10) chatHistory = chatHistory.slice(-10);
@@ -916,6 +975,7 @@ async function submitRant() {
 
     appendChatBubble(reply, 'katban', mood);
   }, 500);
+
 }
 
 btnSubmitRant.addEventListener('click', submitRant);
