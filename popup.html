@@ -25,6 +25,19 @@
 
   <!-- ── Cat Mascot ── -->
   <div class="mascot-wrap" id="mascot-wrap">
+    <!-- Support Bubble (Hidden by default) -->
+    <div class="support-bubble hidden" id="support-bubble"></div>
+
+    <!-- Mood Bubble (Hidden by default) -->
+    <div class="mood-bubble hidden" id="mood-bubble">
+      <button class="mood-btn" data-mood="default" title="Default">🐱</button>
+      <button class="mood-btn" data-mood="stressed" title="Stressed">😫</button>
+      <button class="mood-btn" data-mood="tired" title="Tired">🥱</button>
+    </div>
+
+    <!-- Animation Elements -->
+    <div class="rant-hearts hidden" id="rant-hearts"></div>
+
     <svg id="cat-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <clipPath id="popup-eyes-clip">
@@ -85,7 +98,7 @@
       <line x1="88" y1="66" x2="72" y2="68" stroke="var(--cat-whiskers, #999)" stroke-width="1"/>
       <line x1="90" y1="72" x2="72" y2="72" stroke="var(--cat-whiskers, #999)" stroke-width="1"/>
     </svg>
-    <p class="cat-status" id="cat-status">Idle</p>
+    <p class="cat-status status-clickable" id="cat-status" title="How are you feeling?">Idle</p>
   </div>
 
   <div class="tab-container">
@@ -259,6 +272,25 @@
   </footer>
 
   <div id="treat-toast" class="toast hidden"></div>
+
+  <!-- ── Rant Overlay ── -->
+  <div class="rant-overlay" id="rant-overlay">
+    <div class="rant-header" id="btn-rant-toggle">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div id="rant-header-cat" style="width: 32px; height: 32px;"></div>
+        <span class="section-label">VENT TO KATBAN</span>
+      </div>
+    </div>
+    <div class="rant-body">
+      <div class="rant-chat-history" id="rant-chat-history"></div>
+      <textarea id="rant-input" class="text-input rant-textarea" placeholder="What's bothering you? Tell Katban..." maxlength="300"></textarea>
+      <div class="rant-actions">
+        <span class="rant-hint">Press Enter to feed it to the cat</span>
+        <button class="btn btn-primary" id="btn-submit-rant">Feed</button>
+      </div>
+      <div id="rant-paper" class="hidden">📝</div>
+    </div>
+  </div>
 
   <script src="popup.js"></script>
 </body>

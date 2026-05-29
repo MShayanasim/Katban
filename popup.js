@@ -722,3 +722,198 @@ if (catFactSpan) {
   const index = (today.getFullYear() + today.getMonth() + today.getDate()) % CAT_FACTS.length;
   catFactSpan.textContent = "🐾 Fact: " + CAT_FACTS[index];
 }
+
+// ── Emotional Support Features ─────────────────────
+
+const btnRantToggle = document.getElementById('btn-rant-toggle');
+const rantOverlay = document.getElementById('rant-overlay');
+const rantInput = document.getElementById('rant-input');
+const btnSubmitRant = document.getElementById('btn-submit-rant');
+const rantChatHistory = document.getElementById('rant-chat-history');
+const rantPaper = document.getElementById('rant-paper');
+const supportBubble = document.getElementById('support-bubble');
+const rantHearts = document.getElementById('rant-hearts');
+const moodBubble = document.getElementById('mood-bubble');
+const moodBtns = document.querySelectorAll('.mood-btn');
+
+let chatHistory = [];
+
+// Mood Selector Logic
+let currentMood = 'default';
+
+catStatus.addEventListener('click', (e) => {
+  e.stopPropagation();
+  moodBubble.classList.toggle('hidden');
+});
+
+document.addEventListener('click', () => {
+  if (!moodBubble.classList.contains('hidden')) {
+    moodBubble.classList.add('hidden');
+  }
+});
+
+moodBtns.forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    currentMood = btn.getAttribute('data-mood');
+    moodBubble.classList.add('hidden');
+    
+    // Clear old mood classes
+    catSvg.classList.remove('mood-stressed', 'mood-tired');
+    
+    if (currentMood === 'stressed') {
+      catSvg.classList.add('mood-stressed');
+      catStatus.textContent = 'Comforting';
+    } else if (currentMood === 'tired') {
+      catSvg.classList.add('mood-tired');
+      catStatus.textContent = 'Sleeping';
+    } else {
+      setCatState(currentFocusState ? currentFocusState : 'idle');
+    }
+  });
+});
+
+// Rant Box Logic
+btnRantToggle.addEventListener('click', () => {
+  rantOverlay.classList.toggle('active');
+  if (rantOverlay.classList.contains('active')) {
+    setTimeout(() => rantInput.focus(), 300);
+  }
+});
+
+function spawnHearts() {
+  rantHearts.classList.remove('hidden');
+  rantHearts.innerHTML = '';
+  for(let i=0; i<5; i++) {
+    const heart = document.createElement('div');
+    heart.className = 'pixel-heart';
+    heart.textContent = '❤';
+    heart.style.left = (40 + Math.random() * 20) + '%';
+    heart.style.animationDelay = (Math.random() * 0.3) + 's';
+    rantHearts.appendChild(heart);
+  }
+  setTimeout(() => rantHearts.classList.add('hidden'), 2000);
+}
+
+function showSupportMessage(msg) {
+  supportBubble.textContent = msg;
+  supportBubble.classList.remove('hidden');
+  setTimeout(() => {
+    supportBubble.classList.add('hidden');
+  }, 5000);
+}
+
+// The AI Dual-Layer Call
+async function analyzeRant(messages) {
+  const BACKEND_URL = 'https://katban-ai-worker.shayanasim-dev.workers.dev';
+  
+  try {
+    // Layer 1 & 2: Try Cloudflare Backend (Groq/Gemini)
+    const response = await fetch(BACKEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: messages })
+    });
+    if (!response.ok) throw new Error('API Rate Limit or Offline');
+    const data = await response.json();
+    return data.reply;
+  } catch (error) {
+    // Layer 3: Fallback Offline Processing (Transformers.js Placeholder)
+    console.warn("Backend failed or offline. Falling back to local offline classification.");
+    
+    // For now, robust regex fallback
+    const lastUserMessage = messages[messages.length - 1].content.toLowerCase();
+    if (/(abused|abusive|cheated|unsafe|scared|hurt|hit)/i.test(lastUserMessage)) {
+      return "I am so sorry you are going through this. Please remember you deserve to be safe, and none of this is your fault.";
+    } else if (/(tired|exhausted|burnout|overwhelmed)/i.test(lastUserMessage)) {
+      return "You have been working so hard. It is perfectly okay to step away and rest. I will watch over things here.";
+    } else if (/(hate|stupid|idiot|annoying|mad)/i.test(lastUserMessage)) {
+      return "Let it all out! I'm glad you vented to me instead of holding it in. Take a deep breath.";
+    } else {
+      return "I hear you, and I am proud of you for sharing that. I'm always here for you.";
+    }
+  }
+}
+
+function appendChatBubble(text, sender, mood = 'default') {
+  const wrapper = document.createElement('div');
+  wrapper.className = `chat-wrapper wrapper-${sender}`;
+  
+  if (sender === 'katban') {
+    const avatar = document.createElement('div');
+    avatar.className = 'chat-avatar';
+    
+    const clone = catSvg.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.classList.remove('mood-stressed', 'mood-tired', 'cat-chomp', 'mood-happy', 'mood-sad');
+    if (mood !== 'default') {
+      clone.classList.add(`mood-${mood}`);
+    }
+    avatar.appendChild(clone);
+    wrapper.appendChild(avatar);
+  }
+
+  const bubble = document.createElement('div');
+  bubble.className = `chat-bubble chat-${sender}`;
+  bubble.textContent = text;
+  wrapper.appendChild(bubble);
+  
+  rantChatHistory.appendChild(wrapper);
+  rantChatHistory.scrollTop = rantChatHistory.scrollHeight;
+  return wrapper;
+}
+
+// Copy SVG to static display on load
+const headerCatSvg = catSvg.cloneNode(true);
+headerCatSvg.removeAttribute('id');
+headerCatSvg.classList.remove('mood-stressed', 'mood-tired', 'cat-chomp');
+document.getElementById('rant-header-cat').appendChild(headerCatSvg);
+
+async function submitRant() {
+  const text = rantInput.value.trim();
+  if (!text) return;
+  
+  rantInput.value = '';
+  
+  // Append user message
+  appendChatBubble(text, 'user');
+  
+  chatHistory.push({ role: 'user', content: text });
+  if (chatHistory.length > 10) chatHistory = chatHistory.slice(-10);
+  
+  // 1. Paper flies up
+  rantPaper.classList.remove('hidden');
+  rantPaper.classList.add('animate-fly-paper');
+  
+  // 2. Process AI in background
+  const reply = await analyzeRant(chatHistory);
+  
+  chatHistory.push({ role: 'assistant', content: reply });
+  if (chatHistory.length > 10) chatHistory = chatHistory.slice(-10);
+  
+  // 3. Hearts, Reply, and Emotion
+  setTimeout(() => {
+    rantPaper.classList.add('hidden');
+    rantPaper.classList.remove('animate-fly-paper');
+    spawnHearts();
+    
+    // Determine emotion
+    let mood = 'default';
+    const lower = reply.toLowerCase();
+    if (/(happy|proud|great|good|glad|wonderful|awesome)/i.test(lower)) {
+      mood = 'happy';
+    } else if (/(sorry|safe|hurt|tough|hard|worry|worried|sad|difficult)/i.test(lower)) {
+      mood = 'sad';
+    }
+
+    appendChatBubble(reply, 'katban', mood);
+  }, 500);
+}
+
+btnSubmitRant.addEventListener('click', submitRant);
+rantInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    submitRant();
+  }
+});
