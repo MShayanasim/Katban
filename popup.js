@@ -26,6 +26,7 @@ const btnClearHist = document.getElementById('btn-clear-history');
 const pageCatToggle    = document.getElementById('page-cat-toggle');
 const meaningCatToggle = document.getElementById('meaning-cat-toggle');
 const sharedCatToggle  = document.getElementById('shared-cat-toggle');
+const muteSoundToggle  = document.getElementById('mute-sound-toggle');
 const catStyleSelect   = document.getElementById('cat-style-select');
 
 // Overlay elements
@@ -40,6 +41,58 @@ btnSettingsOpen.addEventListener('click', () => {
 btnSettingsClose.addEventListener('click', () => {
   settingsOverlay.classList.remove('katban-open');
 });
+
+// ── Treat Logic ────────────────────────
+const btnTreat = document.getElementById('btn-treat');
+const treatToast = document.getElementById('treat-toast');
+
+const funnyMessages = [
+  "The cat is getting fat!",
+  "I am a cruel dev, wait 5 minutes!",
+  "No treats for you, get back to work!",
+  "Don't spoil the mascot!",
+  "Cooldown active. Stay focused!"
+];
+
+let treatToastTimeout;
+btnTreat.addEventListener('click', () => {
+  chrome.storage.local.get(['lastTreatTime'], (data) => {
+    const now = Date.now();
+    if (data.lastTreatTime && now - data.lastTreatTime < 300000) { // 5 minutes
+      // 5 minute cooldown active
+      treatToast.textContent = funnyMessages[Math.floor(Math.random() * funnyMessages.length)];
+      treatToast.classList.remove('hidden');
+      
+      clearTimeout(treatToastTimeout);
+      treatToastTimeout = setTimeout(() => treatToast.classList.add('hidden'), 4000);
+      return;
+    }
+    
+    // Give treat
+    chrome.storage.local.set({ lastTreatTime: now });
+    
+    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+      if (tabs.length > 0) {
+        chrome.tabs.sendMessage(tabs[0].id, { type: 'SPAWN_TREAT' }, () => {
+          window.close(); // close popup so user can click on page
+        });
+      }
+    });
+  });
+});
+
+const btnLaser = document.getElementById('btn-laser');
+if (btnLaser) {
+  btnLaser.addEventListener('click', () => {
+    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+      if (tabs.length > 0) {
+        chrome.tabs.sendMessage(tabs[0].id, { type: 'SPAWN_LASER' }, () => {
+          window.close();
+        });
+      }
+    });
+  });
+}
 
 // ── Mascot Eye Tracking ────────────────────────
 document.addEventListener('mousemove', (e) => {
@@ -327,6 +380,7 @@ chrome.storage.local.get(['pageCatEnabled', 'meaningCatEnabled', 'sharedCatEnabl
   pageCatToggle.checked = data.pageCatEnabled !== false;
   meaningCatToggle.checked = data.meaningCatEnabled !== false;
   sharedCatToggle.checked = data.sharedCatEnabled === true;
+  muteSoundToggle.checked = data.muteOverlaySound === true;
   catStyleSelect.value = data.catStyle || 'primary';
   document.body.className = `cat-style-${data.catStyle || 'primary'}`;
 });
@@ -358,6 +412,11 @@ meaningCatToggle.addEventListener('change', () => {
 sharedCatToggle.addEventListener('change', () => {
   chrome.storage.local.set({ sharedCatEnabled: sharedCatToggle.checked });
   chrome.runtime.sendMessage({ type: 'UPDATE_SHARED_SETTING', enabled: sharedCatToggle.checked });
+  broadcastSettings();
+});
+
+muteSoundToggle.addEventListener('change', () => {
+  chrome.storage.local.set({ muteOverlaySound: muteSoundToggle.checked });
   broadcastSettings();
 });
 

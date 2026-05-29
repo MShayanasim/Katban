@@ -56,32 +56,74 @@
               <ellipse cx="38" cy="108" rx="8" ry="5" fill="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke="var(--cat-stroke, #777)" stroke-width="1.5"/>
               <ellipse cx="62" cy="108" rx="8" ry="5" fill="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke="var(--cat-stroke, #777)" stroke-width="1.5"/>
             </g>
+            <g class="k-nightcap" opacity="0">
+              <ellipse cx="50" cy="95" rx="39" ry="19" fill="#1e3a8a"/>
+              <path d="M 25 90 L 27 94 L 31 95 L 27 96 L 25 100 L 23 96 L 19 95 L 23 94 Z" fill="#fbbf24"/>
+              <path d="M 50 95 L 51 98 L 54 99 L 51 100 L 50 103 L 49 100 L 46 99 L 49 98 Z" fill="#fbbf24"/>
+              <path d="M 75 88 L 76 91 L 79 92 L 76 93 L 75 96 L 74 93 L 71 92 L 74 91 Z" fill="#fbbf24"/>
+            </g>
             <g class="k-paws" opacity="0">
               <ellipse cx="35" cy="85" rx="6" ry="10" fill="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke="var(--cat-stroke, #777)" stroke-width="2"/>
               <ellipse cx="65" cy="85" rx="6" ry="10" fill="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke="var(--cat-stroke, #777)" stroke-width="2"/>
             </g>
           </g>
 
-          <!-- 2. Run Frame 1 -->
+          <!-- 2. Run Frame 1 (Gallop Stretch) -->
           <g class="k-pose k-pose-run1" opacity="0">
-            <ellipse cx="50" cy="85" rx="35" ry="15" fill="var(--cat-main, #c8c8c8)" stroke="var(--cat-stroke, #777)" stroke-width="2"/>
-            <ellipse cx="50" cy="88" rx="30" ry="12" fill="var(--cat-belly, transparent)" stroke="none"/>
-            <path d="M 85 85 Q 95 70 80 60" fill="none" stroke="var(--cat-tail, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
-            <line x1="30" y1="95" x2="25" y2="115" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
-            <line x1="70" y1="95" x2="65" y2="115" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
-            <line x1="45" y1="95" x2="50" y2="115" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
-            <line x1="60" y1="95" x2="55" y2="115" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
+            <!-- Tail pointing straight back -->
+            <path d="M 115 80 Q 130 80 140 70" fill="none" stroke="var(--cat-tail, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
+            <!-- Body -->
+            <ellipse cx="80" cy="85" rx="40" ry="16" fill="var(--cat-main, #c8c8c8)" stroke="var(--cat-stroke, #777)" stroke-width="2"/>
+            <!-- Belly -->
+            <ellipse cx="80" cy="90" rx="35" ry="11" fill="var(--cat-belly, transparent)" stroke="none"/>
+            
+            <!-- Back Legs (Thicker, pushing backward) -->
+            <!-- Background back leg (staggered right and up) -->
+            <line x1="108" y1="92" x2="128" y2="112" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="8" stroke-linecap="round"/>
+            <!-- Foreground back leg -->
+            <line x1="100" y1="95" x2="118" y2="115" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="8" stroke-linecap="round"/>
+            
+            <!-- Front Legs (Thinner, reaching forward) -->
+            <!-- Background front leg (staggered right and up) -->
+            <line x1="58" y1="92" x2="38" y2="112" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="5" stroke-linecap="round"/>
+            <!-- Foreground front leg -->
+            <line x1="50" y1="95" x2="28" y2="115" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="5" stroke-linecap="round"/>
+            
+            <g class="k-nightcap" opacity="0">
+              <ellipse cx="80" cy="85" rx="41" ry="17" fill="#1e3a8a"/>
+              <path d="M 60 80 L 62 84 L 66 85 L 62 86 L 60 90 L 58 86 L 54 85 L 58 84 Z" fill="#fbbf24"/>
+              <path d="M 90 85 L 91 88 L 94 89 L 91 90 L 90 93 L 89 90 L 86 89 L 89 88 Z" fill="#fbbf24"/>
+              <path d="M 110 80 L 111 82 L 113 83 L 111 84 L 110 86 L 109 84 L 107 83 L 109 82 Z" fill="#fbbf24"/>
+            </g>
           </g>
 
-          <!-- 3. Run Frame 2 -->
+          <!-- 3. Run Frame 2 (Gallop Gather) -->
           <g class="k-pose k-pose-run2" opacity="0">
-            <ellipse cx="50" cy="88" rx="36" ry="14" fill="var(--cat-main, #c8c8c8)" stroke="var(--cat-stroke, #777)" stroke-width="2"/>
-            <ellipse cx="50" cy="90" rx="30" ry="11" fill="var(--cat-belly, transparent)" stroke="none"/>
-            <path d="M 86 88 Q 100 80 85 70" fill="none" stroke="var(--cat-tail, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
-            <line x1="30" y1="98" x2="35" y2="115" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
-            <line x1="70" y1="98" x2="75" y2="115" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
-            <line x1="45" y1="98" x2="40" y2="115" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
-            <line x1="60" y1="98" x2="65" y2="115" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
+            <!-- Tail curling up -->
+            <path d="M 115 82 Q 130 50 110 40" fill="none" stroke="var(--cat-tail, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
+            <!-- Body squished slightly -->
+            <ellipse cx="80" cy="83" rx="38" ry="18" fill="var(--cat-main, #c8c8c8)" stroke="var(--cat-stroke, #777)" stroke-width="2"/>
+            <!-- Belly -->
+            <ellipse cx="80" cy="88" rx="33" ry="12" fill="var(--cat-belly, transparent)" stroke="none"/>
+            
+            <!-- Back Legs (Thicker, tucked forward under belly) -->
+            <!-- Background back leg -->
+            <line x1="110" y1="92" x2="90" y2="112" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="8" stroke-linecap="round"/>
+            <!-- Foreground back leg -->
+            <line x1="100" y1="95" x2="78" y2="115" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="8" stroke-linecap="round"/>
+            
+            <!-- Front Legs (Thinner, swept backward) -->
+            <!-- Background front leg -->
+            <line x1="62" y1="92" x2="72" y2="112" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="5" stroke-linecap="round"/>
+            <!-- Foreground front leg -->
+            <line x1="50" y1="95" x2="58" y2="115" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="5" stroke-linecap="round"/>
+
+            <g class="k-nightcap" opacity="0">
+              <ellipse cx="80" cy="83" rx="39" ry="19" fill="#1e3a8a"/>
+              <path d="M 60 80 L 62 84 L 66 85 L 62 86 L 60 90 L 58 86 L 54 85 L 58 84 Z" fill="#fbbf24"/>
+              <path d="M 90 83 L 91 86 L 94 87 L 91 88 L 90 91 L 89 88 L 86 87 L 89 86 Z" fill="#fbbf24"/>
+              <path d="M 110 78 L 111 80 L 113 81 L 111 82 L 110 84 L 109 82 L 107 81 L 109 80 Z" fill="#fbbf24"/>
+            </g>
           </g>
 
           <!-- 4. Reach -->
@@ -93,6 +135,15 @@
             <line x1="35" y1="75" x2="15" y2="70" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
             <line x1="55" y1="95" x2="50" y2="115" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
             <line x1="65" y1="90" x2="65" y2="115" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
+            
+            <g class="k-nightcap" opacity="0">
+              <g transform="rotate(25 50 80)">
+                <ellipse cx="50" cy="80" rx="36" ry="17" fill="#1e3a8a"/>
+                <path d="M 25 78 L 27 80 L 29 81 L 27 82 L 25 84 L 23 82 L 21 81 L 23 80 Z" fill="#fbbf24"/>
+                <path d="M 50 82 L 51 84 L 53 85 L 51 86 L 50 88 L 49 86 L 47 85 L 49 84 Z" fill="#fbbf24"/>
+                <path d="M 72 78 L 73 80 L 75 81 L 73 82 L 72 84 L 71 82 L 69 81 L 71 80 Z" fill="#fbbf24"/>
+              </g>
+            </g>
           </g>
 
           <!-- 5. Climb -->
@@ -103,6 +154,15 @@
             <line x1="30" y1="50" x2="15" y2="65" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
             <line x1="45" y1="85" x2="35" y2="105" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
             <line x1="55" y1="80" x2="45" y2="110" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
+            
+            <g class="k-nightcap" opacity="0">
+              <g transform="rotate(60 40 70)">
+                <ellipse cx="40" cy="70" rx="31" ry="16" fill="#1e3a8a"/>
+                <path d="M 20 68 L 22 70 L 24 71 L 22 72 L 20 74 L 18 72 L 16 71 L 18 70 Z" fill="#fbbf24"/>
+                <path d="M 40 72 L 41 74 L 43 75 L 41 76 L 40 78 L 39 76 L 37 75 L 39 74 Z" fill="#fbbf24"/>
+                <path d="M 58 68 L 59 70 L 61 71 L 59 72 L 58 74 L 57 72 L 55 71 L 57 70 Z" fill="#fbbf24"/>
+              </g>
+            </g>
           </g>
 
           <!-- 6. Knife Pose -->
@@ -113,6 +173,12 @@
             <ellipse class="k-belly" cx="50" cy="96" rx="34" ry="14" fill="var(--cat-belly, transparent)" stroke="none"/>
             <g class="k-tucked-paws">
               <ellipse cx="38" cy="108" rx="8" ry="5" fill="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke="var(--cat-stroke, #777)" stroke-width="1.5"/>
+            </g>
+            <g class="k-nightcap" opacity="0">
+              <ellipse cx="50" cy="95" rx="39" ry="19" fill="#1e3a8a"/>
+              <path d="M 25 90 L 27 94 L 31 95 L 27 96 L 25 100 L 23 96 L 19 95 L 23 94 Z" fill="#fbbf24"/>
+              <path d="M 50 95 L 51 98 L 54 99 L 51 100 L 50 103 L 49 100 L 46 99 L 49 98 Z" fill="#fbbf24"/>
+              <path d="M 75 88 L 76 91 L 79 92 L 76 93 L 75 96 L 74 93 L 71 92 L 74 91 Z" fill="#fbbf24"/>
             </g>
           </g>
         </g>
@@ -165,6 +231,15 @@
           <line x1="10" y1="72" x2="28" y2="72" stroke="var(--cat-whiskers, #999)" stroke-width="1"/>
           <line x1="88" y1="66" x2="72" y2="68" stroke="var(--cat-whiskers, #999)" stroke-width="1"/>
           <line x1="90" y1="72" x2="72" y2="72" stroke="var(--cat-whiskers, #999)" stroke-width="1"/>
+          
+          <!-- Nightcap -->
+          <g class="k-nightcap" opacity="0">
+            <path d="M 20 81 Q 50 92 80 81 L 82 86 Q 50 98 18 86 Z" fill="#f8fafc"/>
+            <path d="M 60 30 Q 30 -30 -10 15 Q -20 30 0 40 Q 15 35 35 25 Q 50 15 60 30" fill="#1e40af"/>
+            <path d="M 15 38 Q 45 5 78 38 Z" fill="#2563eb"/>
+            <circle cx="-5" cy="35" r="14" fill="#f8fafc"/>
+            <path d="M 15 36 Q 46 20 80 36 L 78 44 Q 46 28 17 44 Z" fill="#f8fafc"/>
+          </g>
         </g>
         
         <!-- Sleep Zs -->
@@ -228,7 +303,20 @@
     const oldStyles = [...document.documentElement.classList].filter(c => c.startsWith('katban-style-'));
     oldStyles.forEach(c => document.documentElement.classList.remove(c));
     document.documentElement.classList.add(`katban-style-${style}`);
+    
+    checkMidnightMode();
   }
+
+  function checkMidnightMode() {
+    const hour = new Date().getHours();
+    // Midnight to 5:59 AM
+    if (hour >= 0 && hour < 6) {
+      cornerCat.classList.add('katban-midnight');
+    } else {
+      cornerCat.classList.remove('katban-midnight');
+    }
+  }
+  setInterval(checkMidnightMode, 60000);
 
   // Load saved setting
   chrome.storage.local.get(['pageCatEnabled', 'meaningCatEnabled', 'sharedCatEnabled', 'catStyle'], (data) => {
@@ -563,6 +651,13 @@
         <rect x="34" y="55" width="2" height="2" fill="white" shape-rendering="crispEdges"/>
         <rect x="64" y="55" width="2" height="2" fill="white" shape-rendering="crispEdges"/>
         <path d="M 44 74 Q 47 78 50 75 Q 53 78 56 74" stroke="var(--cat-stroke, #777)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <g class="k-nightcap" opacity="0">
+          <path d="M 20 81 Q 50 92 80 81 L 82 86 Q 50 98 18 86 Z" fill="#f8fafc"/>
+          <path d="M 60 30 Q 30 -30 -10 15 Q -20 30 0 40 Q 15 35 35 25 Q 50 15 60 30" fill="#1e40af"/>
+          <path d="M 15 38 Q 45 5 78 38 Z" fill="#2563eb"/>
+          <circle cx="-5" cy="35" r="14" fill="#f8fafc"/>
+          <path d="M 15 36 Q 46 20 80 36 L 78 44 Q 46 28 17 44 Z" fill="#f8fafc"/>
+        </g>
       </g>
       <rect x="20" y="85" width="16" height="15" fill="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke="var(--cat-stroke, #777)" stroke-width="2" shape-rendering="crispEdges"/>
       <rect x="64" y="85" width="16" height="15" fill="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke="var(--cat-stroke, #777)" stroke-width="2" shape-rendering="crispEdges"/>
@@ -700,9 +795,7 @@
   const blocker = document.createElement('div');
   blocker.id = 'katban-blocker';
   blocker.innerHTML = `
-    <div id="katban-dvd-cat" class="katban-dvd-cat">
-      ${buildCatSVG('dvd-')}
-    </div>
+    <div id="katban-score" class="katban-score">Score: 0</div>
     <div class="katban-blocker-content">
       ${buildCatSVG('blk-')}
       <h1>Get Back to Work.</h1>
@@ -716,36 +809,62 @@
   let sharedAudioCtx = null;
 
   function playMeow() {
-    try {
-      if (!sharedAudioCtx) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContext) return;
-        sharedAudioCtx = new AudioContext();
+    chrome.storage.local.get(['muteOverlaySound'], (data) => {
+      if (data.muteOverlaySound) return;
+      
+      try {
+        if (!sharedAudioCtx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContext) return;
+          sharedAudioCtx = new AudioContext();
+        }
+        if (sharedAudioCtx.state === 'suspended') {
+          sharedAudioCtx.resume();
+        }
+        
+        const osc = sharedAudioCtx.createOscillator();
+        const gain = sharedAudioCtx.createGain();
+        
+        // Sawtooth wave for a slightly raspy, angry cat tone
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(500, sharedAudioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800, sharedAudioCtx.currentTime + 0.1);
+        osc.frequency.exponentialRampToValueAtTime(300, sharedAudioCtx.currentTime + 0.4);
+        
+        gain.gain.setValueAtTime(0, sharedAudioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.05, sharedAudioCtx.currentTime + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, sharedAudioCtx.currentTime + 0.4);
+        
+        osc.connect(gain);
+        gain.connect(sharedAudioCtx.destination);
+        osc.start();
+        osc.stop(sharedAudioCtx.currentTime + 0.4);
+      } catch(e) {
+        // Ignore if browser completely blocks audio creation
       }
-      if (sharedAudioCtx.state === 'suspended') {
-        sharedAudioCtx.resume();
-      }
-      
-      const osc = sharedAudioCtx.createOscillator();
-      const gain = sharedAudioCtx.createGain();
-      
-      // Sawtooth wave for a slightly raspy, angry cat tone
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(500, sharedAudioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(800, sharedAudioCtx.currentTime + 0.1);
-      osc.frequency.exponentialRampToValueAtTime(300, sharedAudioCtx.currentTime + 0.4);
-      
-      gain.gain.setValueAtTime(0, sharedAudioCtx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.05, sharedAudioCtx.currentTime + 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.001, sharedAudioCtx.currentTime + 0.4);
-      
-      osc.connect(gain);
-      gain.connect(sharedAudioCtx.destination);
-      osc.start();
-      osc.stop(sharedAudioCtx.currentTime + 0.4);
-    } catch(e) {
-      // Ignore if browser completely blocks audio creation
-    }
+    });
+  }
+
+  function playPop() {
+    chrome.storage.local.get(['muteOverlaySound'], (data) => {
+      if (data.muteOverlaySound) return;
+      try {
+        if (!sharedAudioCtx) sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume();
+        const osc = sharedAudioCtx.createOscillator();
+        const gain = sharedAudioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, sharedAudioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(300, sharedAudioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0, sharedAudioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.2, sharedAudioCtx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, sharedAudioCtx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(sharedAudioCtx.destination);
+        osc.start();
+        osc.stop(sharedAudioCtx.currentTime + 0.1);
+      } catch(e) {}
+    });
   }
 
   function spawnDvdCat() {
@@ -770,15 +889,37 @@
       blocker.appendChild(newCat);
     }
     
+    // Minigame pop logic
+    const popAction = (e) => {
+      if (e) e.preventDefault();
+      if (newCat.classList.contains('katban-popped')) return;
+      newCat.classList.add('katban-popped');
+      playPop();
+      
+      const scoreEl = document.getElementById('katban-score');
+      if (scoreEl) {
+        let currentScore = parseInt(scoreEl.textContent.replace('Score: ', '')) || 0;
+        scoreEl.textContent = 'Score: ' + (currentScore + 1);
+        scoreEl.style.transform = 'scale(1.2)';
+        setTimeout(() => scoreEl.style.transform = 'scale(1)', 150);
+      }
+      
+      setTimeout(() => newCat.remove(), 200);
+    };
+    
+    newCat.addEventListener('mousedown', popAction);
+    newCat.addEventListener('touchstart', popAction);
+    
     // Play sound effect
     playMeow();
   }
 
   function startCatSpawner() {
     if (cloneInterval) return;
+    spawnDvdCat(); // Spawn the first one immediately
     cloneInterval = setInterval(() => {
       spawnDvdCat();
-    }, 15000);
+    }, 5000); // reduced to 5 seconds for more fun
   }
 
   function stopCatSpawner() {
@@ -786,13 +927,14 @@
       clearInterval(cloneInterval);
       cloneInterval = null;
     }
-    // Remove clones, keep original
-    const extraCats = blocker.querySelectorAll('.katban-dvd-cat:not(#katban-dvd-cat)');
-    extraCats.forEach(c => c.remove());
+    // Remove all clones
+    document.querySelectorAll('.katban-dvd-cat').forEach(el => el.remove());
+    const scoreEl = document.getElementById('katban-score');
+    if (scoreEl) scoreEl.textContent = 'Score: 0';
   }
 
   // ── MESSAGE LISTENER ─────────────────────────
-  const messageListener = (msg) => {
+  const messageListener = (msg, sender, sendResponse) => {
     try {
       if (isInvalidated) return;
 
@@ -866,6 +1008,18 @@
            safeSend({ type: 'CAT_EVENT', event: 'SET_STATE', state: 'surprised' });
         }
       }
+      
+      if (msg.type === 'SPAWN_TREAT') {
+        activateTreatMode();
+        if (sendResponse) sendResponse({ success: true });
+        return true;
+      }
+      
+      if (msg.type === 'SPAWN_LASER') {
+        activateLaserMode();
+        if (sendResponse) sendResponse({ success: true });
+        return true;
+      }
     } catch (err) {
       if (err.message && err.message.includes('Extension context invalidated')) {
         try { chrome.runtime.onMessage.removeListener(messageListener); } catch (e) {}
@@ -876,6 +1030,248 @@
   try {
     chrome.runtime.onMessage.addListener(messageListener);
   } catch (e) {}
+
+  // ── TREAT MODE ───────────────────────────────
+  let treatModeActive = false;
+  let currentTreat = null;
+  let treatTimeouts = [];
+
+  function clearTreatTimeouts() {
+    treatTimeouts.forEach(t => clearTimeout(t));
+    treatTimeouts = [];
+  }
+
+  function activateTreatMode() {
+    if (treatModeActive) return;
+    treatModeActive = true;
+    
+    // Add overlay cursor layer
+    const treatOverlay = document.createElement('div');
+    treatOverlay.className = 'katban-treat-overlay';
+    document.body.appendChild(treatOverlay);
+
+    // Click to drop treat
+    treatOverlay.addEventListener('click', (e) => {
+      // Remove overlay
+      treatOverlay.remove();
+      treatModeActive = false;
+      
+      // Cleanup previous treat if interrupted
+      if (currentTreat) {
+        currentTreat.remove();
+        clearTreatTimeouts();
+      }
+
+      // Create falling treat element
+      const treat = document.createElement('div');
+      treat.className = 'katban-treat';
+      treat.textContent = '🍖';
+      treat.style.left = `${e.clientX}px`;
+      treat.style.top = `${e.clientY}px`;
+      document.body.appendChild(treat);
+      currentTreat = treat;
+      
+      // Trigger fall
+      treat.getBoundingClientRect(); // force reflow
+      treat.style.top = 'calc(100vh - 50px)';
+
+      // Calculate absolute delta from base position (right: 20px)
+      const targetX = e.clientX;
+      const baseCatCenterX = window.innerWidth - 95; // right: 20px -> left: innerWidth-170 -> center: innerWidth-95
+      const deltaX = targetX - baseCatCenterX;
+      
+      // Calculate remaining duration based on CURRENT position so speed is constant
+      const currentRect = cornerCat.getBoundingClientRect();
+      const currentCatCenterX = currentRect.left + (currentRect.width / 2);
+      const travelDist = Math.abs(targetX - currentCatCenterX);
+      
+      // Calculate a slow, constant speed (e.g., 120 pixels per second)
+      const speedPxPerSec = 120;
+      const durationSec = Math.max(0.2, travelDist / speedPxPerSec);
+      
+      cornerCat.classList.remove('katban-eating'); // cancel eating if it was
+      cornerCat.classList.remove('katban-hidden'); // Make sure it's visible for the treat
+      cornerCat.classList.add('katban-running');
+      
+      // Flip if the target is to the RIGHT of the cat's CURRENT position
+      if (targetX > currentCatCenterX) {
+        cornerCat.classList.add('katban-flipped');
+      } else {
+        cornerCat.classList.remove('katban-flipped');
+      }
+      
+      cornerCat.style.setProperty('transition', `transform ${durationSec}s linear`, 'important');
+      cornerCat.style.setProperty('transform', `translateX(${deltaX}px)`, 'important');
+
+      // Wait for cat to reach treat
+      treatTimeouts.push(setTimeout(() => {
+        cornerCat.classList.remove('katban-running');
+        cornerCat.classList.remove('katban-flipped'); // assume facing left to eat
+        
+        cornerCat.classList.add('katban-eating');
+        treat.style.transform = 'translateX(-50%) scale(0)'; // "eat" it
+        
+        // Wait for eat finish, run back
+        treatTimeouts.push(setTimeout(() => {
+          treat.remove();
+          if (currentTreat === treat) currentTreat = null;
+          
+          cornerCat.classList.remove('katban-eating');
+          cornerCat.classList.add('katban-running');
+          
+          // Running back to origin (which is on the right) -> flip
+          cornerCat.classList.add('katban-flipped');
+          // Calculate return duration
+          const returnDist = Math.abs(baseCatCenterX - targetX);
+          const returnDuration = Math.max(0.5, returnDist / speedPxPerSec);
+          
+          cornerCat.style.setProperty('transition', `transform ${returnDuration}s linear`, 'important');
+          cornerCat.style.setProperty('transform', `translateX(0px)`, 'important');
+          treatTimeouts.push(setTimeout(() => {
+            cornerCat.classList.remove('katban-running');
+            cornerCat.classList.remove('katban-flipped');
+            cornerCat.style.removeProperty('transition');
+            cornerCat.style.removeProperty('transform');
+            // Hide again if the setting was turned off
+            if (!pageCatOn) cornerCat.classList.add('katban-hidden');
+          }, returnDuration * 1000));
+        }, 1500));
+      }, durationSec * 1000));
+    });
+  }
+
+  // ── LASER MODE ───────────────────────────────
+  let laserModeActive = false;
+  let laserDot = null;
+  let laserBeam = null;
+  let laserDevice = null;
+  let laserOverlay = null;
+  let laserRaf = null;
+
+  function activateLaserMode() {
+    if (laserModeActive || treatModeActive) return;
+    laserModeActive = true;
+    
+    laserOverlay = document.createElement('div');
+    laserOverlay.className = 'katban-laser-overlay';
+    document.body.appendChild(laserOverlay);
+    
+    laserDevice = document.createElement('div');
+    laserDevice.className = 'katban-laser-device';
+    laserDevice.textContent = '🖊️';
+    document.body.appendChild(laserDevice);
+    
+    laserBeam = document.createElement('div');
+    laserBeam.className = 'katban-laser-beam';
+    document.body.appendChild(laserBeam);
+
+    laserDot = document.createElement('div');
+    laserDot.className = 'katban-laser-dot';
+    document.body.appendChild(laserDot);
+    
+    cornerCat.classList.remove('katban-hidden');
+    cornerCat.classList.add('katban-running');
+    cornerCat.style.setProperty('transition', 'none', 'important'); // We will update manually
+    
+    let targetX = window.innerWidth / 2;
+    let targetY = window.innerHeight / 2;
+    
+    const baseCatCenterX = window.innerWidth - 95;
+    let currentX = baseCatCenterX;
+    
+    const moveListener = (e) => {
+      laserDevice.style.left = `${e.clientX}px`;
+      laserDevice.style.top = `${e.clientY}px`;
+      
+      laserBeam.style.left = `${e.clientX}px`;
+      laserBeam.style.top = `${e.clientY}px`;
+      
+      // Calculate 45 deg diagonal dot position hitting the ground
+      const groundY = window.innerHeight - 15; // slightly above bottom edge
+      const dy = Math.max(0, groundY - e.clientY);
+      const beamLength = dy / 0.7071;
+      
+      laserBeam.style.setProperty('width', `${beamLength}px`, 'important');
+      
+      targetX = e.clientX + dy;
+      targetY = groundY;
+      
+      // offset by 5px so the 10x10 dot's center is at the target
+      laserDot.style.setProperty('left', `${targetX - 5}px`, 'important');
+      laserDot.style.setProperty('top', `${targetY - 5}px`, 'important');
+    };
+    
+    const endLaserMode = () => {
+      laserModeActive = false;
+      document.removeEventListener('mousemove', moveListener);
+      document.removeEventListener('click', endLaserMode);
+      if (laserDot) laserDot.remove();
+      if (laserBeam) laserBeam.remove();
+      if (laserDevice) laserDevice.remove();
+      if (laserOverlay) laserOverlay.remove();
+      cancelAnimationFrame(laserRaf);
+      
+      cornerCat.classList.remove('katban-running');
+      cornerCat.classList.remove('katban-flipped');
+      cornerCat.classList.remove('katban-pouncing');
+      cornerCat.style.removeProperty('transition');
+      
+      // Run back home
+      cornerCat.style.setProperty('transition', 'transform 1s linear', 'important');
+      cornerCat.style.setProperty('transform', 'translateX(0px)', 'important');
+      cornerCat.classList.add('katban-running');
+      if (currentX < baseCatCenterX) cornerCat.classList.add('katban-flipped');
+      
+      setTimeout(() => {
+        cornerCat.classList.remove('katban-running');
+        cornerCat.classList.remove('katban-flipped');
+        cornerCat.style.removeProperty('transition');
+        cornerCat.style.removeProperty('transform');
+        if (!pageCatOn) cornerCat.classList.add('katban-hidden');
+      }, 1000);
+    };
+    
+    document.addEventListener('mousemove', moveListener);
+    document.addEventListener('click', endLaserMode); // click anywhere to stop
+    
+    let lastTime = performance.now();
+    
+    function laserLoop(now) {
+      if (!laserModeActive) return;
+      
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+      
+      const dist = targetX - currentX;
+      const absDist = Math.abs(dist);
+      const speed = 400; // px/sec
+      
+      if (absDist > 20) {
+        cornerCat.classList.remove('katban-pouncing');
+        cornerCat.classList.add('katban-running');
+        
+        if (dist > 0) {
+          cornerCat.classList.add('katban-flipped');
+          currentX += speed * dt;
+          if (currentX > targetX) currentX = targetX;
+        } else {
+          cornerCat.classList.remove('katban-flipped');
+          currentX -= speed * dt;
+          if (currentX < targetX) currentX = targetX;
+        }
+      } else {
+        // Close enough to pounce
+        cornerCat.classList.remove('katban-running');
+        cornerCat.classList.add('katban-pouncing');
+      }
+      
+      cornerCat.style.setProperty('transform', `translateX(${currentX - baseCatCenterX}px)`, 'important');
+      laserRaf = requestAnimationFrame(laserLoop);
+    }
+    
+    laserRaf = requestAnimationFrame(laserLoop);
+    setTimeout(endLaserMode, 15000); // 15s max
+  }
 
   // ── TYPING ───────────────────────────────────
   document.addEventListener('keydown', (e) => {

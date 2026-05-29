@@ -333,7 +333,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           break;
 
         case 'SET_STATE':
-          if (brain.state === 'on-prop' || brain.state === 'leaving-prop') break;
+          if (brain.state === 'on-prop') break; // Only block on-prop, leaving-prop must be cleared by content script
           setBrainState(brain, msg.state);
           break;
 

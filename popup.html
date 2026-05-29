@@ -6,6 +6,15 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
+  <!-- Treat Button -->
+  <button class="icon-btn btn-treat-open" id="btn-treat" title="Give Treat">
+    🍖
+  </button>
+  <!-- Laser Button -->
+  <button class="icon-btn btn-laser-open" id="btn-laser" title="Laser Pointer">
+    🔴
+  </button>
+  
   <!-- Settings Gear Icon -->
   <button class="icon-btn btn-settings-open" id="btn-settings-open" title="Settings">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -204,6 +213,13 @@
           <span class="toggle-track"></span>
         </label>
       </div>
+      <div class="setting-row">
+        <span>Mute Sound</span>
+        <label class="toggle-switch" title="Mute angry meow on blocked sites">
+          <input type="checkbox" id="mute-sound-toggle">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
       <div class="setting-row" style="margin-top:8px;">
         <span>Cat Style</span>
         <select id="cat-style-select" class="text-input" style="width: 110px; padding: 4px; cursor: pointer;">
@@ -223,6 +239,8 @@
     </div>
     Made by Shayan Asim · <a href="https://github.com/MShayanasim/Katban/blob/main/Privacy.md" class="privacy-link" id="privacy-link">Privacy Policy</a>
   </footer>
+
+  <div id="treat-toast" class="toast hidden"></div>
 
   <script src="popup.js"></script>
 </body>
