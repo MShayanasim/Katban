@@ -150,7 +150,13 @@ body::-webkit-scrollbar-thumb { background: var(--border); }
   display: none;
   flex-direction: column;
   gap: 8px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 4px;
 }
+.tab-content::-webkit-scrollbar { width: 3px; }
+.tab-content::-webkit-scrollbar-thumb { background: var(--border); }
 .tab-content.active {
   display: flex;
 }
@@ -196,12 +202,8 @@ body::-webkit-scrollbar-thumb { background: var(--border); }
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 140px;
-  overflow-y: auto;
-  padding-right: 2px;
 }
-.task-list::-webkit-scrollbar { width: 3px; }
-.task-list::-webkit-scrollbar-thumb { background: var(--border); }
+
 
 .task-item {
   display: flex;
@@ -232,14 +234,6 @@ body::-webkit-scrollbar-thumb { background: var(--border); }
   background: var(--surface-2);
   border-color: var(--accent);
 }
-.task-checkbox:checked::after {
-  content: '';
-  width: 10px;
-  height: 10px;
-  background-color: var(--accent);
-  -webkit-mask: url('data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8.5c-1.5 0-2.7-1.4-2.7-3.2S10.5 2 12 2s2.7 1.4 2.7 3.2S13.5 8.5 12 8.5zM6.8 11.2c-1.4 0-2.5-1.3-2.5-2.8s1.1-2.8 2.5-2.8 2.5 1.3 2.5 2.8-1.1 2.8-2.5 2.8zm10.4 0c-1.4 0-2.5-1.3-2.5-2.8s1.1-2.8 2.5-2.8 2.5 1.3 2.5 2.8-1.1 2.8-2.5 2.8zm-5.2 10.8c-3.3 0-6-2.5-6-5.8 0-2.4 1.5-4.5 3.6-5.3.8-.3 1.6-.5 2.4-.5.8 0 1.6.2 2.4.5 2.1.8 3.6 2.9 3.6 5.3 0 3.3-2.7 5.8-6 5.8z"/></svg>') center/contain no-repeat;
-  mask: url('data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8.5c-1.5 0-2.7-1.4-2.7-3.2S10.5 2 12 2s2.7 1.4 2.7 3.2S13.5 8.5 12 8.5zM6.8 11.2c-1.4 0-2.5-1.3-2.5-2.8s1.1-2.8 2.5-2.8 2.5 1.3 2.5 2.8-1.1 2.8-2.5 2.8zm10.4 0c-1.4 0-2.5-1.3-2.5-2.8s1.1-2.8 2.5-2.8 2.5 1.3 2.5 2.8-1.1 2.8-2.5 2.8zm-5.2 10.8c-3.3 0-6-2.5-6-5.8 0-2.4 1.5-4.5 3.6-5.3.8-.3 1.6-.5 2.4-.5.8 0 1.6.2 2.4.5 2.1.8 3.6 2.9 3.6 5.3 0 3.3-2.7 5.8-6 5.8z"/></svg>') center/contain no-repeat;
-}
 
 .task-text {
   flex-grow: 1;
@@ -260,6 +254,72 @@ body::-webkit-scrollbar-thumb { background: var(--border); }
 }
 .btn-del-task:hover {
   color: var(--danger);
+}
+
+.katban-list-label {
+  font-size: 10px;
+  font-weight: bold;
+  color: var(--text-dim);
+  margin: 6px 0 4px 0;
+  letter-spacing: 0.5px;
+}
+
+.katban-active-wrap {
+  background: var(--surface-2);
+  border: 1px solid var(--accent);
+  padding: 8px;
+  margin-top: 8px;
+  margin-bottom: 12px;
+  box-shadow: 0 0 8px rgba(255, 165, 0, 0.2);
+}
+.katban-active-wrap.hidden {
+  display: none;
+}
+.katban-active-label {
+  font-size: 10px;
+  font-weight: bold;
+  color: var(--accent);
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+.katban-active-task {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.active-task-text {
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--text);
+  word-break: break-word;
+}
+.active-task-actions {
+  display: flex;
+  gap: 4px;
+}
+.icon-btn.btn-task-complete, .icon-btn.btn-task-pause {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+}
+.icon-btn.btn-task-complete {
+  color: #4CAF50;
+  border-color: #4CAF50;
+}
+.icon-btn.btn-task-pause {
+  color: var(--text-dim);
+}
+.btn-play-task {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 10px;
+  padding: 2px 4px;
+}
+.btn-play-task:hover {
+  transform: scale(1.1);
 }
 
 /* ── Stats ── */
@@ -520,19 +580,61 @@ body::-webkit-scrollbar-thumb { background: var(--border); }
   padding: 6px 8px;
   font-size: 11px;
   color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   cursor: pointer;
   transition: background 0.15s;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
 }
 .clip-item:hover { background: var(--surface-2); }
+
+.clip-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2px;
+}
+
+.clip-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-clip-pin, .btn-clip-del {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0px 2px;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-clip-pin:hover, .btn-clip-del:hover {
+  opacity: 1;
+}
+.btn-clip-del {
+  color: #ff4d4d;
+}
+.btn-clip-pin {
+  color: var(--text-dim);
+}
+.btn-clip-pin.pinned {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.clip-preview {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .clip-label {
   font-size: 9px;
   color: var(--text-dim);
-  margin-bottom: 2px;
 }
 
 .clip-empty {

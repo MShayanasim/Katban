@@ -24,7 +24,7 @@ function getBrain(tabId) {
   if (!brains.has(id)) {
     brains.set(id, {
       id: id,
-      state: null,
+      state: currentActiveTask ? 'holding-task' : null,
       danceBankMs: 0,
       lastTypeTime: 0,
       danceInterval: null
@@ -34,6 +34,16 @@ function getBrain(tabId) {
   }
   return brains.get(id);
 }
+
+let currentActiveTask = null;
+chrome.storage.local.get(['katbanActiveTask'], (data) => {
+  currentActiveTask = data.katbanActiveTask || null;
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.katbanActiveTask !== undefined) {
+    currentActiveTask = changes.katbanActiveTask.newValue || null;
+  }
+});
 
 function broadcastState(brain) {
   if (brain.id === 'global') {
@@ -45,7 +55,12 @@ function broadcastState(brain) {
 }
 
 function setBrainState(brain, newState) {
-  if (brain.state === newState) return;
+  // If reverting to idle but we have an active task, revert to holding-task instead
+  if (newState === null && currentActiveTask) {
+    newState = 'holding-task';
+  }
+  
+  if (brain.state === newState && newState !== 'judging') return;
   brain.state = newState;
   broadcastState(brain);
 }
@@ -338,8 +353,38 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           break;
 
         case 'REQUEST_SYNC':
+          if (brain.state === null && currentActiveTask) {
+            setBrainState(brain, 'holding-task');
+          }
           chrome.tabs.sendMessage(tabId, { type: 'SYNC_CAT_STATE', state: brain.state }).catch(() => {});
           break;
+      }
+      break;
+    }
+
+    case 'ACTIVE_TASK_UPDATE': {
+      // Synchronously update local variable to prevent race condition in setBrainState
+      currentActiveTask = msg.task || null;
+      // Save globally for block pages
+      chrome.storage.local.set({ katbanActiveTask: currentActiveTask });
+      // Notify all cats to hold or stop holding the task
+      if (currentActiveTask) {
+        if (sharedCatEnabled) {
+          setBrainState(getBrain('global'), 'holding-task');
+        } else {
+          for (let id of brains.keys()) {
+            setBrainState(getBrain(id), 'holding-task');
+          }
+        }
+      } else {
+        // If task is cleared, reset state
+        if (sharedCatEnabled) {
+          setBrainState(getBrain('global'), null);
+        } else {
+          for (let id of brains.keys()) {
+            setBrainState(getBrain(id), null);
+          }
+        }
       }
       break;
     }
@@ -353,7 +398,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         data = data || {};
         let history = data.clipboardHistory || [];
         history.unshift({ text: msg.text, timestamp: Date.now() });
-        if (history.length > 15) history = history.slice(0, 15);
+        
+        const pinned = history.filter(item => item.pinned);
+        const unpinned = history.filter(item => !item.pinned);
+        
+        history = [...pinned, ...unpinned].slice(0, 15);
         chrome.storage.local.set({ clipboardHistory: history });
       });
 

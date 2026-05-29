@@ -273,7 +273,7 @@
   // ── INJECT CORNER CAT ─────────────────────────
   const cornerCat = document.createElement('div');
   cornerCat.id = 'katban-corner-cat';
-  cornerCat.innerHTML = buildCatSVG('kat-');
+  cornerCat.innerHTML = buildCatSVG('kat-') + '<div class="k-task-sign" id="k-task-sign"></div>';
   document.body.appendChild(cornerCat);
 
   const pupils  = cornerCat.querySelector('#kat-pupils');
@@ -281,6 +281,35 @@
   const pupilR  = cornerCat.querySelector('#kat-pupil-r');
   const shineL  = cornerCat.querySelector('#kat-shine-l');
   const shineR  = cornerCat.querySelector('#kat-shine-r');
+  const taskSign = cornerCat.querySelector('#k-task-sign');
+  function updateBlockerText(task) {
+    const title = document.getElementById('katban-block-title');
+    const subtitle = document.getElementById('katban-block-subtitle');
+    if (!title || !subtitle) return;
+    
+    if (task) {
+      title.textContent = `Get back to: ${task}`;
+    } else {
+      title.textContent = 'Get Back to Work.';
+    }
+  }
+
+  chrome.storage.local.get(['katbanActiveTask'], (data) => {
+    if (data.katbanActiveTask) {
+      if (taskSign) taskSign.textContent = data.katbanActiveTask;
+      updateBlockerText(data.katbanActiveTask);
+    } else {
+      updateBlockerText(null);
+    }
+  });
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.katbanActiveTask !== undefined) {
+      const newTask = changes.katbanActiveTask.newValue || '';
+      if (taskSign) taskSign.textContent = newTask;
+      updateBlockerText(newTask);
+    }
+  });
 
   let pageCatOn = true;
   let meaningCatOn = true;
@@ -369,6 +398,7 @@
 
   // ── USER ACTIVITY ─────────────────────────
   let lastActivityTime = 0;
+  let judgingRevertTimer = null;
   function reportActivity() {
     if (Date.now() - lastActivityTime > 1000) {
       lastActivityTime = Date.now();
@@ -778,7 +808,7 @@
   });
 
   // ── CAT STATE ────────────────────────────────
-  const ALL_STATES = ['judging', 'sleeping', 'peeking', 'on-prop', 'leaving-prop', 'surprised', 'dancing', 'exhausted'];
+  const ALL_STATES = ['judging', 'sleeping', 'peeking', 'on-prop', 'leaving-prop', 'surprised', 'dancing', 'exhausted', 'holding-task'];
   
   function applyCatState(state) {
     if (catState === state) return;
@@ -798,8 +828,8 @@
     <div id="katban-score" class="katban-score">Score: 0</div>
     <div class="katban-blocker-content">
       ${buildCatSVG('blk-')}
-      <h1>Get Back to Work.</h1>
-      <p>Blocked during focus session.</p>
+      <h1 id="katban-block-title">Get Back to Work.</h1>
+      <p id="katban-block-subtitle">Blocked during focus session.</p>
     </div>
   `;
   document.body.appendChild(blocker);
@@ -940,7 +970,6 @@
 
       if (msg.type === 'BLOCK_PAGE') {
         blocker.classList.add('katban-active');
-        cornerCat.classList.add('katban-hidden');
         startCatSpawner();
       }
 
@@ -989,7 +1018,8 @@
         }
 
         if (msg.state === 'judging') {
-          setTimeout(() => {
+          clearTimeout(judgingRevertTimer);
+          judgingRevertTimer = setTimeout(() => {
             if (catState === 'judging') {
               safeSend({ type: 'CAT_EVENT', event: 'SET_STATE', state: null });
             }
@@ -1211,19 +1241,18 @@
       if (laserOverlay) laserOverlay.remove();
       cancelAnimationFrame(laserRaf);
       
-      cornerCat.classList.remove('katban-running');
-      cornerCat.classList.remove('katban-flipped');
-      cornerCat.classList.remove('katban-pouncing');
-      cornerCat.style.removeProperty('transition');
-      
       // Run back home
+      cornerCat.classList.remove('katban-pouncing');
+      cornerCat.classList.add('katban-running');
+      cornerCat.classList.remove('katban-flipped'); // Face left to run back
+      if (currentX < baseCatCenterX) cornerCat.classList.add('katban-flipped'); // Face right if on the left
+      
       cornerCat.style.setProperty('transition', 'transform 1s linear', 'important');
       cornerCat.style.setProperty('transform', 'translateX(0px)', 'important');
-      cornerCat.classList.add('katban-running');
-      if (currentX < baseCatCenterX) cornerCat.classList.add('katban-flipped');
       
       setTimeout(() => {
         cornerCat.classList.remove('katban-running');
+        cornerCat.classList.remove('katban-pouncing');
         cornerCat.classList.remove('katban-flipped');
         cornerCat.style.removeProperty('transition');
         cornerCat.style.removeProperty('transform');

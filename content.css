@@ -36,6 +36,9 @@
 }
 
 #katban-corner-cat.katban-hovered {
+  opacity: 1 !important; /* parent doesn't fade, children do */
+}
+#katban-corner-cat.katban-hovered svg {
   opacity: 0.6 !important;
   -webkit-mask-image: radial-gradient(circle, black 1.5px, transparent 1.5px) !important;
   -webkit-mask-size: 4px 4px !important;
@@ -43,7 +46,7 @@
   mask-size: 4px 4px !important;
 }
 
-#katban-corner-cat.katban-hovered.katban-peeking {
+#katban-corner-cat.katban-peeking svg {
   opacity: 1 !important;
   -webkit-mask-image: none !important;
   mask-image: none !important;
@@ -235,6 +238,78 @@
 #katban-corner-cat.katban-exhausted .k-exhausted-breath {
   transform-origin: 52px 77px !important;
   animation: katban-breath-puff 1.2s ease-in-out infinite !important;
+}
+
+/* ── HOLDING TASK SIGN ── */
+.k-task-sign {
+  position: absolute !important;
+  bottom: 5px !important;
+  left: -85px !important;
+  width: 110px !important;
+  min-height: 45px !important;
+  box-sizing: border-box !important;
+  background: #fdf5e6 !important;
+  border: 2px solid #8b4513 !important;
+  border-radius: 4px !important;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.3) !important;
+  padding: 6px !important;
+  font-family: sans-serif !important;
+  font-size: 10px !important;
+  color: #333 !important;
+  text-align: center !important;
+  line-height: 1.2 !important;
+  word-wrap: break-word !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transform: translate(20px, 20px) scale(0) !important;
+  transform-origin: bottom right !important;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  z-index: -1 !important;
+  pointer-events: auto !important;
+}
+.k-task-sign:hover {
+  opacity: 0.6 !important;
+  -webkit-mask-image: radial-gradient(circle, black 1.5px, transparent 1.5px) !important;
+  -webkit-mask-size: 4px 4px !important;
+  mask-image: radial-gradient(circle, black 1.5px, transparent 1.5px) !important;
+  mask-size: 4px 4px !important;
+}
+.k-task-sign::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 10px !important;
+  right: -8px !important;
+  width: 8px !important;
+  height: 16px !important;
+  background: #d2b48c !important;
+  border: 2px solid #8b4513 !important;
+  border-left: none !important;
+  border-radius: 0 4px 4px 0 !important;
+}
+.katban-holding-task .k-task-sign {
+  transform: translate(0, 0) scale(1) !important;
+}
+#katban-corner-cat.katban-running .k-task-sign,
+#katban-corner-cat.katban-eating .k-task-sign,
+#katban-corner-cat.katban-pouncing .k-task-sign {
+  transform: translate(20px, 20px) scale(0) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Make cat sit while holding task */
+.katban-holding-task .k-cat-character {
+  transform: translate(10px, 10px) !important;
+}
+.katban-holding-task .k-body {
+  d: path('M30,110 C30,90 40,60 50,60 C60,60 70,90 70,110 Z') !important;
+}
+.katban-holding-task .k-paw-l {
+  transform: translate(3px, -5px) rotate(-15deg) !important;
+}
+.katban-holding-task .k-paw-r {
+  transform: translate(-3px, -5px) rotate(15deg) !important;
 }
 
 /* ── FLOATING LETTERS ── */

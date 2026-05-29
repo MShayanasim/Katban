@@ -320,17 +320,71 @@ function renderClipboard(history) {
     clipList.innerHTML = '<li class="clip-empty">Nothing copied yet.</li>';
     return;
   }
+  
+  // Sort history: pinned first, then by timestamp descending
+  history.sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return b.timestamp - a.timestamp;
+  });
+
+  const numPinned = history.filter(item => item.pinned).length;
+
   history.forEach((item) => {
     const li = document.createElement('li');
     li.className = 'clip-item';
     li.title = 'Click or drag to copy';
     li.draggable = true;
 
+    const header = document.createElement('div');
+    header.className = 'clip-item-header';
+
     const label = document.createElement('div');
     label.className = 'clip-label';
     label.textContent = new Date(item.timestamp).toLocaleTimeString();
 
+    const actions = document.createElement('div');
+    actions.className = 'clip-actions';
+
+    const pinBtn = document.createElement('button');
+    pinBtn.className = 'btn-clip-pin' + (item.pinned ? ' pinned' : '');
+    pinBtn.innerHTML = '📌';
+    pinBtn.title = item.pinned ? 'Unpin' : 'Pin to top (Max 3)';
+    
+    // Prevent drag on buttons
+    pinBtn.addEventListener('mousedown', e => e.stopPropagation());
+    
+    pinBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!item.pinned && numPinned >= 3) {
+        alert('Max 3 items can be pinned.');
+        return;
+      }
+      item.pinned = !item.pinned;
+      chrome.storage.local.set({ clipboardHistory: history });
+    });
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn-clip-del';
+    delBtn.innerHTML = '✖';
+    delBtn.title = 'Delete';
+    
+    delBtn.addEventListener('mousedown', e => e.stopPropagation());
+    
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const newHistory = history.filter(h => h.timestamp !== item.timestamp || h.text !== item.text);
+      chrome.storage.local.set({ clipboardHistory: newHistory });
+    });
+
+    actions.appendChild(pinBtn);
+    actions.appendChild(delBtn);
+
+    header.appendChild(label);
+    header.appendChild(actions);
+
     const preview = document.createElement('div');
+    preview.className = 'clip-preview';
     preview.textContent = item.text.slice(0, 100) + (item.text.length > 100 ? '…' : '');
 
     // Drag to copy
@@ -355,7 +409,7 @@ function renderClipboard(history) {
       }
     });
 
-    li.appendChild(label);
+    li.appendChild(header);
     li.appendChild(preview);
     clipList.appendChild(li);
   });
@@ -496,56 +550,98 @@ function refreshStats() {
 
 // ── To-Do List (Tasks) ─────────────────────────
 const taskList = document.getElementById('task-list');
+const taskDoneList = document.getElementById('task-done-list');
+const activeWrap = document.getElementById('katban-active-wrap');
+const activeText = document.getElementById('active-task-text');
 const newTaskInput = document.getElementById('new-task-input');
 const btnAddTask = document.getElementById('btn-add-task');
 
+let currentTasks = [];
+
+function broadcastActiveTask(activeTaskText) {
+  chrome.runtime.sendMessage({ type: 'ACTIVE_TASK_UPDATE', task: activeTaskText });
+}
+
 function renderTasks(tasks) {
+  currentTasks = tasks;
   taskList.innerHTML = '';
-  if (!tasks || tasks.length === 0) {
-    taskList.innerHTML = '<li class="clip-empty">All caught up!</li>';
-    return;
-  }
+  taskDoneList.innerHTML = '';
   
-  tasks.forEach((task, index) => {
+  let hasActive = false;
+  let todoCount = 0;
+  let doneCount = 0;
+
+  tasks.forEach((task) => {
+    if (task.status === undefined) {
+      task.status = task.done ? 'done' : 'todo';
+    }
+
+    if (task.status === 'doing') {
+      hasActive = true;
+      activeWrap.classList.remove('hidden');
+      document.getElementById('active-task-text').textContent = task.text;
+      return;
+    }
+
     const li = document.createElement('li');
     li.className = 'task-item';
 
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.className = 'task-checkbox';
-    cb.checked = task.done;
-
     const span = document.createElement('span');
-    span.className = 'task-text' + (task.done ? ' done' : '');
+    span.className = 'task-text' + (task.status === 'done' ? ' done' : '');
     span.textContent = task.text;
+
+    const actionDiv = document.createElement('div');
+    actionDiv.style.display = 'flex';
+    actionDiv.style.gap = '4px';
+
+    if (task.status === 'todo') {
+      todoCount++;
+      const playBtn = document.createElement('button');
+      playBtn.className = 'btn-play-task';
+      playBtn.innerHTML = '▶';
+      playBtn.title = 'Start Task';
+      playBtn.addEventListener('click', () => {
+        // Move any currently 'doing' to 'todo'
+        tasks.forEach(t => { if (t.status === 'doing') t.status = 'todo'; });
+        task.status = 'doing';
+        saveTasks(tasks);
+        renderTasks(tasks);
+        broadcastActiveTask(task.text);
+      });
+      actionDiv.appendChild(playBtn);
+    } else {
+      doneCount++;
+    }
 
     const delBtn = document.createElement('button');
     delBtn.className = 'btn-del-task';
     delBtn.innerHTML = '✕';
-
-    // Toggle done
-    cb.addEventListener('change', () => {
-      task.done = cb.checked;
-      span.className = 'task-text' + (task.done ? ' done' : '');
-      saveTasks(tasks);
-      if (task.done) {
-        // Happy cat bounce!
-        triggerHappyCat();
-      }
-    });
-
-    // Delete task
     delBtn.addEventListener('click', () => {
-      tasks.splice(index, 1);
-      saveTasks(tasks);
-      renderTasks(tasks);
+      currentTasks = tasks.filter(t => t.id !== task.id);
+      saveTasks(currentTasks);
+      renderTasks(currentTasks);
     });
+    actionDiv.appendChild(delBtn);
 
-    li.appendChild(cb);
     li.appendChild(span);
-    li.appendChild(delBtn);
-    taskList.appendChild(li);
+    li.appendChild(actionDiv);
+    
+    if (task.status === 'todo') {
+      taskList.appendChild(li);
+    } else {
+      taskDoneList.appendChild(li);
+    }
   });
+
+  if (!hasActive) {
+    activeWrap.classList.add('hidden');
+  }
+  if (todoCount === 0) {
+    taskList.innerHTML = '<li class="clip-empty">All caught up!</li>';
+  }
+  if (doneCount === 0) {
+    taskDoneList.innerHTML = '<li class="clip-empty">No tasks finished yet.</li>';
+  }
 }
 
 function saveTasks(tasks) {
@@ -557,7 +653,7 @@ function addTask() {
   if (!text) return;
   chrome.storage.local.get(['katbanTasks'], (data) => {
     const tasks = data.katbanTasks || [];
-    tasks.push({ text: text, done: false, id: Date.now() });
+    tasks.push({ text: text, status: 'todo', id: Date.now() });
     saveTasks(tasks);
     renderTasks(tasks);
     newTaskInput.value = '';
@@ -567,6 +663,28 @@ function addTask() {
 btnAddTask.addEventListener('click', addTask);
 newTaskInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') addTask();
+});
+
+// ── Static Listeners for Active Task ───────────
+document.getElementById('btn-active-complete').addEventListener('click', () => {
+  const task = currentTasks.find(t => t.status === 'doing');
+  if (task) {
+    task.status = 'done';
+    saveTasks(currentTasks);
+    renderTasks(currentTasks);
+    triggerHappyCat(); // Celebration
+    broadcastActiveTask(null);
+  }
+});
+
+document.getElementById('btn-active-pause').addEventListener('click', () => {
+  const task = currentTasks.find(t => t.status === 'doing');
+  if (task) {
+    task.status = 'todo';
+    saveTasks(currentTasks);
+    renderTasks(currentTasks);
+    broadcastActiveTask(null);
+  }
 });
 
 chrome.storage.local.get(['katbanTasks'], (data) => {

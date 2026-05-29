@@ -114,14 +114,32 @@
     <div class="tab-content" id="tab-tasks">
       <div class="section">
         <div class="section-header">
-          <span class="section-label">TO-DO LIST</span>
+          <span class="section-label">KAT-BAN BOARD</span>
         </div>
         <div class="task-input-wrap">
           <input type="text" id="new-task-input" class="text-input" placeholder="Add a new task..." maxlength="60">
           <button class="btn btn-primary btn-sm" id="btn-add-task">+</button>
         </div>
+        
+        <!-- Active Task Area -->
+        <div class="katban-active-wrap hidden" id="katban-active-wrap">
+          <div class="katban-active-label">DOING</div>
+          <div class="katban-active-task" id="katban-active-task">
+            <span class="active-task-text" id="active-task-text"></span>
+            <div class="active-task-actions">
+              <button class="icon-btn btn-task-complete" id="btn-active-complete" title="Complete Task">✔</button>
+              <button class="icon-btn btn-task-pause" id="btn-active-pause" title="Move back to To-Do">⏸</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="katban-list-label">TO-DO</div>
         <ul class="task-list" id="task-list">
           <li class="clip-empty">All caught up!</li>
+        </ul>
+        
+        <div class="katban-list-label" style="margin-top: 12px;">DONE</div>
+        <ul class="task-list done-list" id="task-done-list">
         </ul>
       </div>
     </div>
