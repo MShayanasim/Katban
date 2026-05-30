@@ -1029,6 +1029,9 @@
       // TRIGGER_LEAVE_PROP removed; state transition handled fully via SYNC_CAT_STATE
       
       if (msg.type === 'SYNC_CAT_STATE') {
+        // Ignore incoming states if we are busy playing!
+        if (treatModeActive || laserModeActive || treatTimeouts.length > 0 || currentTreat) return;
+
         // Filter out context-specific states if this tab doesn't have the context
         if (msg.state === 'peeking' && !activePasswordInput) {
           applyCatState(null);
@@ -1144,6 +1147,10 @@
     }
     treatModeActive = true;
     
+    // Clear any existing state (like being in a box) globally and locally
+    applyCatState(null);
+    safeSend({ type: 'CAT_EVENT', event: 'SET_STATE', state: null });
+
     // Add overlay cursor layer
     const treatOverlay = document.createElement('div');
     treatOverlay.className = 'katban-treat-overlay';
@@ -1271,6 +1278,10 @@
     }
     if (laserModeActive) return;
     laserModeActive = true;
+    
+    // Clear any existing state (like being in a box) globally and locally
+    applyCatState(null);
+    safeSend({ type: 'CAT_EVENT', event: 'SET_STATE', state: null });
     
     laserOverlay = document.createElement('div');
     laserOverlay.className = 'katban-laser-overlay';
