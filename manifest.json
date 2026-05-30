@@ -7,6 +7,11 @@
     "default_popup": "popup.html",
     "default_title": "Katban"
   },
+  "icons": {
+    "16": "katban-icon-16.png",
+    "48": "katban-icon-48.png",
+    "128": "katban-icon-128.png"
+  },
   "permissions": [
     "storage",
     "tabs",
