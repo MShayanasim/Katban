@@ -4,8 +4,8 @@ export default {
     // Browsers enforce that websites cannot spoof the Origin header, so this
     // effectively blocks all web-based callers while allowing your extension.
     const requestOrigin = request.headers.get("Origin") || "";
-    const isExtensionOrigin = requestOrigin.startsWith("chrome-extension://") ||
-                              requestOrigin.startsWith("moz-extension://");
+    // Only allow this specific extension ID in production
+    const isExtensionOrigin = requestOrigin === "chrome-extension://ddfibomcbjpakcgijconpijlfnjkoece";
 
     // For non-extension origins on preflight, return 403 immediately.
     if (request.method === "OPTIONS") {
