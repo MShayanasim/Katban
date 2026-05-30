@@ -1,7 +1,7 @@
 # Privacy Policy
 
 **Katban** — Chrome Extension  
-**Last Updated:** May 28, 2026
+**Last Updated:** May 30, 2026
 
 ---
 
@@ -20,16 +20,18 @@ All data is stored **locally on your device** using the Chrome Storage API (`chr
 | Data | Purpose | Retention |
 |---|---|---|
 | Timer state & duration | Persist the focus timer across popup opens/closes | Cleared on session end or manual stop |
+| Focus Session History | Track productivity over time (e.g. daily focus minutes) | Locally stored, automatically deletes after 60 days |
 | Blocked site list | Enforce site blocking during focus sessions | Until you edit or clear it |
-| Clipboard history (last 5 entries) | Display recent copy events in the popup | Until you click "Clear" |
-| Settings & preferences | Page cat toggle, meaning cat toggle, shared cat mode, cat skin | Persistent until changed |
+| Clipboard history (last 15 entries) | Display recent copy events in the popup. **All text is AES-GCM Encrypted** on your hard drive. | Until you click "Clear" |
+| Tasks & To-Do List | Persist active tasks and completed tasks | Until you delete them |
+| Settings & preferences | Page cat toggle, meaning cat toggle, shared cat mode, cat skin, etc. | Persistent until changed |
 | Cat brain state | Track cat behavior (sleeping, dancing, etc.) | In-memory only; not persisted across browser restarts |
 
 ### What Katban Does NOT Collect
 
 - ❌ Personal information (name, email, accounts)
 - ❌ Browsing history or URLs (only checked at navigation time for site blocking, never stored)
-- ❌ Passwords or form data (the cat *looks* at password fields, but never reads or stores the content)
+- ❌ **Passwords or Sensitive Data:** Katban implements strict "Smart Filtering". It completely ignores anything copied from a password field, and redacts credit cards and API tokens before saving them.
 - ❌ Analytics, telemetry, or usage tracking
 - ❌ Cookies or fingerprinting data
 
@@ -37,13 +39,14 @@ All data is stored **locally on your device** using the Chrome Storage API (`chr
 
 ## Third-Party Services
 
-Katban makes **one** external network request:
+Katban makes external network requests for specific features:
 
 | Service | When | What's Sent | Privacy Policy |
 |---|---|---|---|
 | [Free Dictionary API](https://dictionaryapi.dev/) | When you double-click a word on a page | The selected word only | [dictionaryapi.dev](https://dictionaryapi.dev/) |
+| **Katban AI Worker** (Cloudflare/Groq/Gemini) | When you submit a message in the Rant Chat | The text you typed in the chat box | Handled via Cloudflare Workers and processed ephemerally by Groq/Google. |
 
-No other external requests are made. There are no ads, no trackers, and no server-side components.
+No other external requests are made. There are no ads, no trackers, and no background analytics components.
 
 ---
 

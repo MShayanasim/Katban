@@ -13,6 +13,19 @@
 	"upload_source_maps": true,
 	"compatibility_flags": [
 		"nodejs_compat"
+	],
+	/**
+	 * KV Namespace for persistent rate limiting across all Cloudflare edge nodes.
+	 * SETUP: Run `npx wrangler kv namespace create RATE_LIMIT` once, then paste
+	 * the returned id into the `id` field below.
+	 * Without this, rate limits only apply within a single edge node's memory
+	 * and are bypassed by VPN or isolate cold-starts.
+	 */
+	"kv_namespaces": [
+		{
+			"binding": "RATE_LIMIT_KV",
+			"id": "8e56966fff4041e0aeb2ff23af123847"
+		}
 	]
 	/**
 	 * Smart Placement

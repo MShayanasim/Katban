@@ -127,8 +127,8 @@
             <ellipse cx="50" cy="80" rx="35" ry="16" transform="rotate(25 50 80)" fill="var(--cat-main, #c8c8c8)" stroke="var(--cat-stroke, #777)" stroke-width="2"/>
             <ellipse cx="50" cy="86" rx="28" ry="9" transform="rotate(25 50 80)" fill="var(--cat-belly, transparent)" stroke="none"/>
             <path d="M 80 90 Q 95 85 85 110" fill="none" stroke="var(--cat-tail, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
-            <line x1="30" y1="65" x2="10" y2="60" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
-            <line x1="35" y1="75" x2="15" y2="70" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
+            <line x1="45" y1="85" x2="25" y2="105" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="5" stroke-linecap="round"/>
+            <line x1="38" y1="85" x2="15" y2="100" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="5" stroke-linecap="round"/>
             <line x1="55" y1="95" x2="50" y2="115" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
             <line x1="65" y1="90" x2="65" y2="115" stroke="var(--cat-paws, var(--cat-main, #c8c8c8))" stroke-width="6" stroke-linecap="round"/>
             
@@ -350,8 +350,16 @@
   });
 
   // ── SAFE MESSAGE WRAPPER & HOT-RELOAD CLEANUP ──
+  // Create one AbortController to govern all document/window event listeners.
+  // Calling listenerAbort.abort() in unloadListener removes them all at once,
+  // preventing dead listener accumulation across extension hot-reloads.
+  const listenerAbort = new AbortController();
+  const listenerSignal = listenerAbort.signal;
+
   const unloadListener = () => {
     isInvalidated = true;
+    // Abort all document/window event listeners registered with listenerSignal
+    listenerAbort.abort();
     if (typeof stopCatSpawner === 'function') stopCatSpawner();
     if (cornerCat) cornerCat.remove();
     const defBubble = document.getElementById('katban-def-bubble');
@@ -371,6 +379,7 @@
     clearInterval(midnightInterval);
     if (typeof scrollTimer !== 'undefined') clearTimeout(scrollTimer);
     if (typeof defTimeout !== 'undefined') clearTimeout(defTimeout);
+    if (typeof focusoutTimer !== 'undefined') clearTimeout(focusoutTimer);
     
     document.removeEventListener('katban-unload-old', unloadListener);
   };
@@ -410,22 +419,33 @@
   ['mousemove', 'keydown', 'scroll', 'click'].forEach(evt => {
     document.addEventListener(evt, () => {
       if (isInvalidated || !pageCatOn) return;
+      
+      // Instantly wake up locally to avoid MV3 Service Worker cold-start desync
+      if (catState === 'sleeping') {
+        applyCatState(null);
+      }
+      
       reportActivity();
-    }, { passive: true });
+    }, { passive: true, signal: listenerSignal });
   });
 
   // ── MOUSE TRACKING (LOCAL ONLY) ─────────────
   const BASE = { lx: 30, ly: 54, rx: 60, ry: 54, slx: 38, sly: 55, srx: 68, sry: 55 };
   const MAX_MOVE = 3;
 
-  document.addEventListener('mousemove', (e) => {
+  let mouseX = 0;
+  let mouseY = 0;
+  let pupilRaf = null;
+
+  function updatePupils() {
+    pupilRaf = null;
     if (isInvalidated || !pageCatOn || catState === 'sleeping') return;
 
     const rect = cornerCat.getBoundingClientRect();
     const cx = rect.left + rect.width  / 2;
     const cy = rect.top  + rect.height / 2;
-    const dx = e.clientX - cx;
-    const dy = e.clientY - cy;
+    const dx = mouseX - cx;
+    const dy = mouseY - cy;
     const dist  = Math.hypot(dx, dy);
     const angle = Math.atan2(dy, dx);
     const move  = Math.min(dist / 35, MAX_MOVE);
@@ -437,14 +457,14 @@
     
     if (catGroup) {
       const catRect = catGroup.getBoundingClientRect();
-      if (e.clientX >= catRect.left && e.clientX <= catRect.right && 
-          e.clientY >= catRect.top && e.clientY <= catRect.bottom) {
+      if (mouseX >= catRect.left && mouseX <= catRect.right && 
+          mouseY >= catRect.top && mouseY <= catRect.bottom) {
         isHovered = true;
       }
     } else {
       // Fallback
-      if (e.clientX >= rect.left && e.clientX <= rect.right && 
-          e.clientY >= rect.top && e.clientY <= rect.bottom) {
+      if (mouseX >= rect.left && mouseX <= rect.right && 
+          mouseY >= rect.top && mouseY <= rect.bottom) {
         isHovered = true;
       }
     }
@@ -471,7 +491,17 @@
         cornerCat.classList.remove('katban-scared');
       }
     }
-  });
+  }
+
+  document.addEventListener('mousemove', (e) => {
+    if (isInvalidated || !pageCatOn) return;
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    
+    if (!pupilRaf) {
+      pupilRaf = requestAnimationFrame(updatePupils);
+    }
+  }, { signal: listenerSignal });
 
   // ── PASSWORD PEEKING ─────────────────────────
   let activePasswordInput = null;
@@ -487,7 +517,7 @@
         setTimeout(updateCatPasswordPosition, 0);
       }
     }
-  }, {capture: true});
+  }, { capture: true, signal: listenerSignal });
 
   function stopPeeking() {
     if (activePasswordInput) {
@@ -561,25 +591,27 @@
   }
 
   document.addEventListener('focusin', (e) => {
-    if (isInvalidated || !pageCatOn) return;
+    const isTreatRunning = treatModeActive || currentTreat || treatTimeouts.length > 0;
+    if (isTreatRunning || laserModeActive || !pageCatOn) return;
     const t = (e.composedPath && e.composedPath()[0]) || e.target;
     if (!t || !t.tagName) return;
     
     if (t.type === 'password') {
       activePasswordInput = t;
       updateCatPasswordPosition();
-      activePasswordInput.addEventListener('input', handlePasswordInput);
-      activePasswordInput.addEventListener('keyup', handlePasswordInput);
-      activePasswordInput.addEventListener('mouseup', handlePasswordInput);
+      activePasswordInput.addEventListener('input', handlePasswordInput, { signal: listenerSignal });
+      activePasswordInput.addEventListener('keyup', handlePasswordInput, { signal: listenerSignal });
+      activePasswordInput.addEventListener('mouseup', handlePasswordInput, { signal: listenerSignal });
       safeSend({ type: 'CAT_EVENT', event: 'SET_STATE', state: 'peeking' });
     } else {
-      const isInput = t.tagName === 'INPUT' || t.tagName === 'TEXTAREA';
+      const tag = t.tagName.toUpperCase();
+      const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SEARCH';
       const isEditable = t.isContentEditable || t.getAttribute('contenteditable') === 'true';
-      const isSearchBox = t.getAttribute('role') === 'textbox' || t.getAttribute('role') === 'searchbox';
-      const isCustomInput = t.tagName.includes('-') && (t.tagName.includes('INPUT') || t.tagName.includes('SEARCH') || t.tagName.includes('EDITOR'));
+      const isSearchBox = t.getAttribute('role') === 'textbox' || t.getAttribute('role') === 'searchbox' || t.getAttribute('role') === 'combobox';
+      const isCustomInput = tag.includes('-') && (tag.includes('INPUT') || tag.includes('SEARCH') || tag.includes('EDITOR') || tag.includes('QUERY'));
 
       if (isInput || isEditable || isSearchBox || isCustomInput) {
-        if (isInput) {
+        if (tag === 'INPUT') {
           const excludedTypes = ['submit', 'button', 'checkbox', 'radio', 'hidden', 'color', 'file', 'image', 'range', 'reset'];
           if (excludedTypes.includes(t.type) || t.readOnly || t.disabled) return;
         }
@@ -589,23 +621,26 @@
         }
       }
     }
-  }, true);
+  }, { capture: true, signal: listenerSignal });
 
   function hasLocalActiveInput() {
-    const active = document.activeElement;
-    const activeShadow = active && active.shadowRoot ? active.shadowRoot.activeElement : null;
-    const currentFocus = activeShadow || active;
+    let currentFocus = document.activeElement;
+    // Recursively drill down into nested Shadow DOMs (e.g. Reddit, GitHub)
+    while (currentFocus && currentFocus.shadowRoot && currentFocus.shadowRoot.activeElement) {
+      currentFocus = currentFocus.shadowRoot.activeElement;
+    }
     
     if (!currentFocus || currentFocus === document.body) return false;
     
-    const isInput = currentFocus.tagName === 'INPUT' || currentFocus.tagName === 'TEXTAREA';
+    const tag = currentFocus.tagName.toUpperCase();
+    const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SEARCH';
     const isEditable = currentFocus.isContentEditable || currentFocus.getAttribute('contenteditable') === 'true';
-    const isSearchBox = currentFocus.getAttribute('role') === 'textbox' || currentFocus.getAttribute('role') === 'searchbox';
-    const isCustomInput = currentFocus.tagName.includes('-') && (currentFocus.tagName.includes('INPUT') || currentFocus.tagName.includes('SEARCH') || currentFocus.tagName.includes('EDITOR'));
+    const isSearchBox = currentFocus.getAttribute('role') === 'textbox' || currentFocus.getAttribute('role') === 'searchbox' || currentFocus.getAttribute('role') === 'combobox';
+    const isCustomInput = tag.includes('-') && (tag.includes('INPUT') || tag.includes('SEARCH') || tag.includes('EDITOR') || tag.includes('QUERY'));
     
     if (!isInput && !isEditable && !isSearchBox && !isCustomInput) return false;
     
-    if (isInput) {
+    if (tag === 'INPUT') {
       const excludedTypes = ['submit', 'button', 'checkbox', 'radio', 'hidden', 'color', 'file', 'image', 'range', 'reset'];
       if (excludedTypes.includes(currentFocus.type) || currentFocus.readOnly || currentFocus.disabled) return false;
     }
@@ -613,6 +648,7 @@
     return true;
   }
 
+  let focusoutTimer = null;
   document.addEventListener('focusout', (e) => {
     if (isInvalidated) return;
     const t = (e.composedPath && e.composedPath()[0]) || e.target;
@@ -620,16 +656,17 @@
       stopPeeking();
     } else {
       // Small delay so if focus immediately jumps to an inner/wrapper element, we don't blink the state.
-      setTimeout(() => {
+      clearTimeout(focusoutTimer);
+      focusoutTimer = setTimeout(() => {
         if (!hasLocalActiveInput()) {
           if (catState === 'surprised') {
             safeSend({ type: 'CAT_EVENT', event: 'SET_STATE', state: null });
           }
-          cornerCat.classList.remove('katban-surprised');
+          if (cornerCat) cornerCat.classList.remove('katban-surprised');
         }
       }, 50);
     }
-  }, true);
+  }, { capture: true, signal: listenerSignal });
 
   // ── SCROLL BOBBING ───────────────────────────
   let scrollTimer = null;
@@ -640,7 +677,7 @@
     scrollTimer = setTimeout(() => {
       cornerCat.classList.remove('katban-scrolling');
     }, 650);
-  }, { passive: true });
+  }, { passive: true, signal: listenerSignal });
 
   // ── WORD DEFINITION BUBBLE ───────────────────
   const defBubble = document.createElement('div');
@@ -714,12 +751,9 @@
     if (!word || /\s/.test(word)) return;
 
     try {
-      const controller = new AbortController();
-      const fetchTimeout = setTimeout(() => controller.abort(), 5000);
-      const res  = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`, { signal: controller.signal });
-      clearTimeout(fetchTimeout);
-      if (!res.ok) throw new Error();
-      const data = await res.json();
+      const response = await chrome.runtime.sendMessage({ type: 'FETCH_DICTIONARY', word });
+      if (!response || response.error) throw new Error();
+      const data = response.data;
       const def  = data?.[0]?.meanings?.[0]?.definitions?.[0]?.definition;
       const pos  = data?.[0]?.meanings?.[0]?.partOfSpeech;
       if (!def) throw new Error();
@@ -749,9 +783,9 @@
     } catch {
       defBubble.classList.remove('katban-visible');
     }
-  });
+  }, { signal: listenerSignal });
 
-  document.addEventListener('click', () => defBubble.classList.remove('katban-visible'));
+  document.addEventListener('click', () => defBubble.classList.remove('katban-visible'), { signal: listenerSignal });
 
   // ── COPY TRACKER ─────────────────────────────
   const judgeToast = document.createElement('div');
@@ -791,41 +825,14 @@
       copied = '[Sensitive Data Protected]';
     }
 
-    chrome.storage.local.get(['clipboardHistory'], (data) => {
-      if (chrome.runtime.lastError) return;
-      const history = data.clipboardHistory || [];
-      const isDuplicate = history.some(item => item.text === copied);
-
-      if (isDuplicate) {
-        const dupLines = [
-          'Already got that, human.',
-          'Stop repeating yourself, meow.',
-          'I already memorized that.',
-          'Deja vu? You already copied this.',
-          'I am a cat, not a broken record.'
-        ];
-        judgeToast.textContent = dupLines[Math.floor(Math.random() * dupLines.length)];
-        judgeToast.classList.add('katban-visible');
-        clearTimeout(judgeTimer);
-        judgeTimer = setTimeout(() => {
-          judgeToast.classList.remove('katban-visible');
-        }, 3200);
-        
-        safeSend({ type: 'CAT_EVENT', event: 'SET_STATE', state: 'judging' });
-      } else {
-        safeSend({ type: 'COPY_EVENT', text: copied });
-
-        if (copied.length > 500) {
-          judgeToast.textContent = judgeLines[Math.floor(Math.random() * judgeLines.length)];
-          judgeToast.classList.add('katban-visible');
-          clearTimeout(judgeTimer);
-          judgeTimer = setTimeout(() => {
-            judgeToast.classList.remove('katban-visible');
-          }, 3200);
-        }
-      }
-    });
-  });
+    // Send to background for deduplication and encrypted storage.
+    // We do NOT read clipboardHistory here to avoid:
+    //   (a) comparing plaintext against AES-GCM ciphertext (always false), and
+    //   (b) a race condition where two tabs read stale state and overwrite each other.
+    // The background responds with CLIPBOARD_DUPLICATE or CLIPBOARD_LARGE_COPY
+    // so the toast and judging state still work correctly.
+    safeSend({ type: 'COPY_EVENT', text: copied });
+  }, { signal: listenerSignal });
 
   // ── CAT STATE ────────────────────────────────
   const ALL_STATES = ['judging', 'sleeping', 'peeking', 'on-prop', 'leaving-prop', 'surprised', 'dancing', 'exhausted', 'holding-task'];
@@ -899,7 +906,11 @@
     chrome.storage.local.get(['muteOverlaySound'], (data) => {
       if (data.muteOverlaySound) return;
       try {
-        if (!sharedAudioCtx) sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (!sharedAudioCtx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContext) return;
+          sharedAudioCtx = new AudioContext();
+        }
         if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume();
         const osc = sharedAudioCtx.createOscillator();
         const gain = sharedAudioCtx.createGain();
@@ -1015,22 +1026,23 @@
         });
       }
 
+      // TRIGGER_LEAVE_PROP removed; state transition handled fully via SYNC_CAT_STATE
+      
       if (msg.type === 'SYNC_CAT_STATE') {
         // Filter out context-specific states if this tab doesn't have the context
         if (msg.state === 'peeking' && !activePasswordInput) {
           applyCatState(null);
-          safeSend({ type: 'CAT_EVENT', event: 'SET_STATE', state: null });
+          // Do not broadcast 'null' back to the background, as that breaks the original tab
           return;
         }
         if (msg.state === 'surprised' && !hasLocalActiveInput()) {
           applyCatState(null);
-          safeSend({ type: 'CAT_EVENT', event: 'SET_STATE', state: null });
+          // Do not broadcast 'null' back to the background, as that breaks the original tab
           return;
         }
 
         applyCatState(msg.state);
 
-        // Handle short timeouts locally (moved from service worker)
         if (msg.state === 'leaving-prop') {
           setTimeout(() => {
             if (catState === 'leaving-prop') {
@@ -1064,6 +1076,33 @@
         }
       }
       
+      if (msg.type === 'CLIPBOARD_DUPLICATE') {
+        // Background confirmed this text was already in history (decryption-based check)
+        const dupLines = [
+          'Already got that, human.',
+          'Stop repeating yourself, meow.',
+          'I already memorized that.',
+          'Deja vu? You already copied this.',
+          'I am a cat, not a broken record.'
+        ];
+        judgeToast.textContent = dupLines[Math.floor(Math.random() * dupLines.length)];
+        judgeToast.classList.add('katban-visible');
+        clearTimeout(judgeTimer);
+        judgeTimer = setTimeout(() => {
+          judgeToast.classList.remove('katban-visible');
+        }, 3200);
+      }
+
+      if (msg.type === 'CLIPBOARD_LARGE_COPY') {
+        // Background confirmed a large (>500 char) unique copy was stored
+        judgeToast.textContent = judgeLines[Math.floor(Math.random() * judgeLines.length)];
+        judgeToast.classList.add('katban-visible');
+        clearTimeout(judgeTimer);
+        judgeTimer = setTimeout(() => {
+          judgeToast.classList.remove('katban-visible');
+        }, 3200);
+      }
+
       if (msg.type === 'SPAWN_TREAT') {
         activateTreatMode();
         if (sendResponse) sendResponse({ success: true });
@@ -1096,8 +1135,13 @@
     treatTimeouts = [];
   }
 
+  let endLaserModeGlobal = null;
+
   function activateTreatMode() {
     if (treatModeActive) return;
+    if (laserModeActive && endLaserModeGlobal) {
+      endLaserModeGlobal(true);
+    }
     treatModeActive = true;
     
     // Add overlay cursor layer
@@ -1189,12 +1233,13 @@
             cornerCat.style.removeProperty('transform');
             // Hide again if the setting was turned off
             if (!pageCatOn) cornerCat.classList.add('katban-hidden');
+            // Cleanup memory
+            if (treatTimeouts.length > 0) treatTimeouts = [];
           }, returnDuration * 1000));
         }, 1500));
       }, durationSec * 1000));
     });
   }
-
   // ── LASER MODE ───────────────────────────────
   let laserModeActive = false;
   let laserDot = null;
@@ -1204,7 +1249,27 @@
   let laserRaf = null;
 
   function activateLaserMode() {
-    if (laserModeActive || treatModeActive) return;
+    const isTreatRunning = treatModeActive || currentTreat || treatTimeouts.length > 0;
+    if (isTreatRunning) {
+      // Cancel treat mode to start laser
+      const overlay = document.querySelector('.katban-treat-overlay');
+      if (overlay) overlay.remove();
+      treatModeActive = false;
+      if (currentTreat) {
+        currentTreat.remove();
+        currentTreat = null;
+      }
+      clearTreatTimeouts();
+      cornerCat.classList.remove('katban-eating', 'katban-running', 'katban-flipped');
+      cornerCat.style.removeProperty('transition');
+      
+      // Calculate current position to avoid teleportation
+      const rect = cornerCat.getBoundingClientRect();
+      const currentCatCenterX = rect.left + (rect.width / 2);
+      const baseCatCenterX = window.innerWidth - 95;
+      cornerCat.style.setProperty('transform', `translateX(${currentCatCenterX - baseCatCenterX}px)`, 'important');
+    }
+    if (laserModeActive) return;
     laserModeActive = true;
     
     laserOverlay = document.createElement('div');
@@ -1232,7 +1297,14 @@
     let targetY = window.innerHeight / 2;
     
     const baseCatCenterX = window.innerWidth - 95;
-    let currentX = baseCatCenterX;
+    
+    // Pick up from current position if interrupted from Treat mode
+    const currentRect = cornerCat.getBoundingClientRect();
+    let currentX = currentRect.left + (currentRect.width / 2);
+    // Fallback to base center if hidden
+    if (cornerCat.classList.contains('katban-hidden') || currentX === 0) {
+      currentX = baseCatCenterX;
+    }
     
     const moveListener = (e) => {
       laserDevice.style.left = `${e.clientX}px`;
@@ -1256,8 +1328,17 @@
       laserDot.style.setProperty('top', `${targetY - 5}px`, 'important');
     };
     
-    const endLaserMode = () => {
+    // Store the 15s auto-cancel timer ID so we can clear it inside endLaserMode.
+    // Without this, force-cancelling laser mode (e.g. Treat takes over) would
+    // still fire the timer later and run the 'run home' path, conflicting with
+    // whatever animation is now active.
+    let laserMaxTimer = null;
+
+    const endLaserMode = (force = false) => {
       laserModeActive = false;
+      endLaserModeGlobal = null;
+      // Always clear the 15s timer — it may or may not have fired already
+      clearTimeout(laserMaxTimer);
       document.removeEventListener('mousemove', moveListener);
       document.removeEventListener('click', endLaserMode);
       if (laserDot) laserDot.remove();
@@ -1265,6 +1346,13 @@
       if (laserDevice) laserDevice.remove();
       if (laserOverlay) laserOverlay.remove();
       cancelAnimationFrame(laserRaf);
+      
+      if (force === true) {
+        // Instant cancel without running home (e.g. Treat mode takes over)
+        cornerCat.classList.remove('katban-pouncing', 'katban-running', 'katban-flipped');
+        cornerCat.style.removeProperty('transition');
+        return;
+      }
       
       // Run back home
       cornerCat.classList.remove('katban-pouncing');
@@ -1284,13 +1372,14 @@
         if (!pageCatOn) cornerCat.classList.add('katban-hidden');
       }, 1000);
     };
+    endLaserModeGlobal = endLaserMode;
     
-    document.addEventListener('mousemove', moveListener);
+    document.addEventListener('mousemove', moveListener, { signal: listenerSignal });
     // Defer click-to-stop registration until AFTER the current click event (which
     // triggered activateLaserMode) has fully propagated — otherwise it fires immediately.
     setTimeout(() => {
       if (laserModeActive) {
-        document.addEventListener('click', endLaserMode); // click anywhere to stop
+        document.addEventListener('click', endLaserMode, { signal: listenerSignal }); // click anywhere to stop
       }
     }, 0);
 
@@ -1331,7 +1420,8 @@
     }
     
     laserRaf = requestAnimationFrame(laserLoop);
-    setTimeout(endLaserMode, 15000); // 15s max
+    // Assign to laserMaxTimer so endLaserMode can cancel it on force-cancel
+    laserMaxTimer = setTimeout(endLaserMode, 15000); // 15s max
   }
 
   // ── TYPING ───────────────────────────────────
@@ -1355,5 +1445,5 @@
       
       setTimeout(() => letter.remove(), 1000);
     }
-  });
+  }, { signal: listenerSignal });
 })();

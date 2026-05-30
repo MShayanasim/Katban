@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Katban",
-  "version": "2.0",
-  "description": "A cat-themed productivity companion. Focus timer, clipboard tracker, and in-page reading assistant.",
+  "version": "1.0.0",
+  "description": "Your interactive cat companion. Features a Pomodoro timer, site blocker, AI support chat, tasks, and a secure clipboard manager.",
   "action": {
     "default_popup": "popup.html",
     "default_title": "Katban"
@@ -37,6 +37,6 @@
     }
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self' https://katban-ai-worker.shayanasim-dev.workers.dev;"
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self' https://katban-ai-worker.shayanasim-dev.workers.dev https://api.dictionaryapi.dev;"
   }
 }

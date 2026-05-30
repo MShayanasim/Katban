@@ -34,12 +34,6 @@
     <!-- Support Bubble (Hidden by default) -->
     <div class="support-bubble hidden" id="support-bubble"></div>
 
-    <!-- Mood Bubble (Hidden by default) -->
-    <div class="mood-bubble hidden" id="mood-bubble">
-      <button class="mood-btn" data-mood="default" title="Default">🐱</button>
-      <button class="mood-btn" data-mood="stressed" title="Stressed">😫</button>
-      <button class="mood-btn" data-mood="tired" title="Tired">🥱</button>
-    </div>
 
     <!-- Animation Elements -->
     <div class="rant-hearts hidden" id="rant-hearts"></div>
@@ -106,7 +100,7 @@
       <line x1="88" y1="66" x2="72" y2="68" stroke="var(--cat-whiskers, #999)" stroke-width="1"/>
       <line x1="90" y1="72" x2="72" y2="72" stroke="var(--cat-whiskers, #999)" stroke-width="1"/>
     </svg>
-    <p class="cat-status status-clickable" id="cat-status" title="How are you feeling?">Idle</p>
+    <p class="cat-status" id="cat-status">Idle</p>
   </div>
 
   <div class="tab-container">
@@ -256,6 +250,13 @@
         <span>Mute Sound</span>
         <label class="toggle-switch" title="Mute angry meow on blocked sites">
           <input type="checkbox" id="mute-sound-toggle">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="setting-row">
+        <span>Never Sleep</span>
+        <label class="toggle-switch" title="Prevent the cat from sleeping to enjoy idle animations">
+          <input type="checkbox" id="never-sleep-toggle">
           <span class="toggle-track"></span>
         </label>
       </div>

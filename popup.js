@@ -27,6 +27,7 @@ const pageCatToggle    = document.getElementById('page-cat-toggle');
 const meaningCatToggle = document.getElementById('meaning-cat-toggle');
 const sharedCatToggle  = document.getElementById('shared-cat-toggle');
 const muteSoundToggle  = document.getElementById('mute-sound-toggle');
+const neverSleepToggle = document.getElementById('never-sleep-toggle');
 const catStyleSelect   = document.getElementById('cat-style-select');
 
 // Overlay elements
@@ -112,14 +113,6 @@ document.addEventListener('mousemove', (e) => {
 
   // Move pupil rects via transform on the group
   pupils.style.transform = `translate(${ox}px, ${oy}px)`;
-
-  // Proximity scared state
-  if (isHappy) return;
-  if (dist < 55) {
-    setCatState('scared');
-  } else if (!currentFocusState) {
-    setCatState('idle');
-  }
 });
 
 let currentFocusState = null;
@@ -137,8 +130,8 @@ function setCatState(state) {
 
   if (isHappy) return;
 
-  catSvg.className.baseVal = '';          // clear all state classes
-  catStatus.className      = 'cat-status';
+  catSvg.className.baseVal = ''; // clear all state classes
+  catStatus.className = 'cat-status';
 
   switch (state) {
     case 'focus':
@@ -336,7 +329,7 @@ async function renderClipboard(history) {
       if (item.text === '[Sensitive Data Protected]') {
         item.decryptedText = item.text;
       } else {
-        item.decryptedText = await globalThis.katbanDecrypt(item.text) || item.text;
+        item.decryptedText = await katbanDecrypt(item.text) || item.text;
       }
     }
   }
@@ -367,28 +360,30 @@ async function renderClipboard(history) {
     
     pinBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (item.pinned) {
-        // Unpinning is always allowed — toggle immediately
-        item.pinned = false;
-        chrome.storage.local.set({ clipboardHistory: history });
-        return;
-      }
-      // Re-read from storage to get the live pin count, preventing stale count bugs
       chrome.storage.local.get(['clipboardHistory'], (freshData) => {
         const freshHistory = freshData.clipboardHistory || [];
-        const livePinnedCount = freshHistory.filter(h => h.pinned).length;
-        if (livePinnedCount >= 3) {
-          // Show a non-blocking inline toast instead of alert()
-          const pinWarn = document.getElementById('pin-limit-toast');
-          if (pinWarn) {
-            pinWarn.classList.remove('hidden');
-            clearTimeout(pinWarn._hideTimer);
-            pinWarn._hideTimer = setTimeout(() => pinWarn.classList.add('hidden'), 2500);
+        
+        if (!item.pinned) {
+          const livePinnedCount = freshHistory.filter(h => h.pinned).length;
+          if (livePinnedCount >= 3) {
+            const pinWarn = document.getElementById('pin-limit-toast');
+            if (pinWarn) {
+              pinWarn.classList.remove('hidden');
+              clearTimeout(pinWarn._hideTimer);
+              pinWarn._hideTimer = setTimeout(() => pinWarn.classList.add('hidden'), 2500);
+            }
+            return;
           }
-          return;
         }
-        item.pinned = true;
-        chrome.storage.local.set({ clipboardHistory: history });
+        
+        const toStore = freshHistory.map((h) => {
+          const isMatch = item.id ? (h.id === item.id) : (h.timestamp === item.timestamp && h.text === item.text);
+          if (isMatch) {
+            return { ...h, pinned: !item.pinned };
+          }
+          return h;
+        });
+        chrome.storage.local.set({ clipboardHistory: toStore });
       });
     });
 
@@ -401,11 +396,13 @@ async function renderClipboard(history) {
     
     delBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      // Use unique id when available (new items); fall back to timestamp+text for legacy items
-      const newHistory = item.id
-        ? history.filter(h => h.id !== item.id)
-        : history.filter(h => h.timestamp !== item.timestamp || h.text !== item.text);
-      chrome.storage.local.set({ clipboardHistory: newHistory });
+      chrome.storage.local.get(['clipboardHistory'], (freshData) => {
+        const freshHistory = freshData.clipboardHistory || [];
+        const toStore = item.id
+          ? freshHistory.filter(h => h.id !== item.id)
+          : freshHistory.filter(h => h.timestamp !== item.timestamp || h.text !== item.text);
+        chrome.storage.local.set({ clipboardHistory: toStore });
+      });
     });
 
     actions.appendChild(pinBtn);
@@ -461,11 +458,12 @@ btnClearHist.addEventListener('click', () => {
 });
 
 // ── Settings ───────────────────────────
-chrome.storage.local.get(['pageCatEnabled', 'meaningCatEnabled', 'sharedCatEnabled', 'catStyle'], (data) => {
+chrome.storage.local.get(['pageCatEnabled', 'meaningCatEnabled', 'sharedCatEnabled', 'catStyle', 'muteOverlaySound', 'katbanNeverSleep'], (data) => {
   pageCatToggle.checked = data.pageCatEnabled !== false;
   meaningCatToggle.checked = data.meaningCatEnabled !== false;
   sharedCatToggle.checked = data.sharedCatEnabled === true;
   muteSoundToggle.checked = data.muteOverlaySound === true;
+  neverSleepToggle.checked = data.katbanNeverSleep === true;
   catStyleSelect.value = data.catStyle || 'primary';
   document.body.className = `cat-style-${data.catStyle || 'primary'}`;
 });
@@ -505,6 +503,11 @@ sharedCatToggle.addEventListener('change', () => {
 
 muteSoundToggle.addEventListener('change', () => {
   chrome.storage.local.set({ muteOverlaySound: muteSoundToggle.checked });
+  broadcastSettings();
+});
+
+neverSleepToggle.addEventListener('change', () => {
+  chrome.storage.local.set({ katbanNeverSleep: neverSleepToggle.checked });
   broadcastSettings();
 });
 
@@ -635,12 +638,15 @@ function renderTasks(tasks) {
       playBtn.innerHTML = '▶';
       playBtn.title = 'Start Task';
       playBtn.addEventListener('click', () => {
-        // Move any currently 'doing' to 'todo'
-        tasks.forEach(t => { if (t.status === 'doing') t.status = 'todo'; });
-        task.status = 'doing';
-        saveTasks(tasks);
-        renderTasks(tasks);
-        broadcastActiveTask(task.text);
+        chrome.storage.local.get(['katbanTasks'], (freshData) => {
+          const freshTasks = freshData.katbanTasks || [];
+          freshTasks.forEach(t => { if (t.status === 'doing') t.status = 'todo'; });
+          const targetTask = freshTasks.find(t => t.id === task.id);
+          if (targetTask) targetTask.status = 'doing';
+          saveTasks(freshTasks);
+          renderTasks(freshTasks);
+          broadcastActiveTask(task.text);
+        });
       });
       actionDiv.appendChild(playBtn);
     } else {
@@ -651,9 +657,12 @@ function renderTasks(tasks) {
     delBtn.className = 'btn-del-task';
     delBtn.innerHTML = '✕';
     delBtn.addEventListener('click', () => {
-      currentTasks = tasks.filter(t => t.id !== task.id);
-      saveTasks(currentTasks);
-      renderTasks(currentTasks);
+      chrome.storage.local.get(['katbanTasks'], (freshData) => {
+        const freshTasks = freshData.katbanTasks || [];
+        const filteredTasks = freshTasks.filter(t => t.id !== task.id);
+        saveTasks(filteredTasks);
+        renderTasks(filteredTasks);
+      });
     });
     actionDiv.appendChild(delBtn);
 
@@ -701,24 +710,30 @@ newTaskInput.addEventListener('keypress', (e) => {
 
 // ── Static Listeners for Active Task ───────────
 document.getElementById('btn-active-complete').addEventListener('click', () => {
-  const task = currentTasks.find(t => t.status === 'doing');
-  if (task) {
-    task.status = 'done';
-    saveTasks(currentTasks);
-    renderTasks(currentTasks);
-    triggerHappyCat(); // Celebration
-    broadcastActiveTask(null);
-  }
+  chrome.storage.local.get(['katbanTasks'], (freshData) => {
+    const freshTasks = freshData.katbanTasks || [];
+    const task = freshTasks.find(t => t.status === 'doing');
+    if (task) {
+      task.status = 'done';
+      saveTasks(freshTasks);
+      renderTasks(freshTasks);
+      triggerHappyCat(); // Celebration
+      broadcastActiveTask(null);
+    }
+  });
 });
 
 document.getElementById('btn-active-pause').addEventListener('click', () => {
-  const task = currentTasks.find(t => t.status === 'doing');
-  if (task) {
-    task.status = 'todo';
-    saveTasks(currentTasks);
-    renderTasks(currentTasks);
-    broadcastActiveTask(null);
-  }
+  chrome.storage.local.get(['katbanTasks'], (freshData) => {
+    const freshTasks = freshData.katbanTasks || [];
+    const task = freshTasks.find(t => t.status === 'doing');
+    if (task) {
+      task.status = 'todo';
+      saveTasks(freshTasks);
+      renderTasks(freshTasks);
+      broadcastActiveTask(null);
+    }
+  });
 });
 
 chrome.storage.local.get(['katbanTasks'], (data) => {
@@ -771,45 +786,9 @@ const rantChatHistory = document.getElementById('rant-chat-history');
 const rantPaper = document.getElementById('rant-paper');
 const supportBubble = document.getElementById('support-bubble');
 const rantHearts = document.getElementById('rant-hearts');
-const moodBubble = document.getElementById('mood-bubble');
-const moodBtns = document.querySelectorAll('.mood-btn');
 
 let chatHistory = [];
 
-// Mood Selector Logic
-let currentMood = 'default';
-
-catStatus.addEventListener('click', (e) => {
-  e.stopPropagation();
-  moodBubble.classList.toggle('hidden');
-});
-
-document.addEventListener('click', () => {
-  if (!moodBubble.classList.contains('hidden')) {
-    moodBubble.classList.add('hidden');
-  }
-});
-
-moodBtns.forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    currentMood = btn.getAttribute('data-mood');
-    moodBubble.classList.add('hidden');
-    
-    // Clear old mood classes
-    catSvg.classList.remove('mood-stressed', 'mood-tired');
-    
-    if (currentMood === 'stressed') {
-      catSvg.classList.add('mood-stressed');
-      catStatus.textContent = 'Comforting';
-    } else if (currentMood === 'tired') {
-      catSvg.classList.add('mood-tired');
-      catStatus.textContent = 'Sleeping';
-    } else {
-      setCatState(currentFocusState ? currentFocusState : 'idle');
-    }
-  });
-});
 
 // Rant Box Logic
 btnRantToggleMain.addEventListener('click', () => {
@@ -856,7 +835,10 @@ async function analyzeRant(messages) {
     try {
       response = await fetch(BACKEND_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer katban-secret-default-token-xyz789'
+        },
         body: JSON.stringify({ messages: messages }),
         signal: controller.signal
       });
@@ -871,7 +853,10 @@ async function analyzeRant(messages) {
     console.warn("Backend failed or offline. Falling back to local offline classification.");
     
     // For now, robust regex fallback
-    const lastUserMessage = messages[messages.length - 1].content.toLowerCase();
+    const lastMsg = messages[messages.length - 1];
+    // Guard: if messages array is somehow empty, return a safe default
+    if (!lastMsg) return "I'm here for you. 🐱";
+    const lastUserMessage = lastMsg.content.toLowerCase();
     if (/(abused|abusive|cheated|unsafe|scared|hurt|hit)/i.test(lastUserMessage)) {
       return "I am so sorry you are going through this. Please remember you deserve to be safe, and none of this is your fault.";
     } else if (/(tired|exhausted|burnout|overwhelmed)/i.test(lastUserMessage)) {

@@ -22,12 +22,15 @@ function bufferToBase64(buffer) {
 }
 
 // Get or create the master AES key from chrome.storage.local
+let cachedCryptoKey = null;
+
 async function getOrCreateCryptoKey() {
+  if (cachedCryptoKey) return cachedCryptoKey;
+
   return new Promise((resolve, reject) => {
     chrome.storage.local.get(['katbanMasterKey'], async (data) => {
       if (chrome.runtime.lastError) return reject(chrome.runtime.lastError);
       
-      let rawKeyData;
       if (data.katbanMasterKey) {
         // Load existing key
         const jwk = JSON.parse(data.katbanMasterKey);
@@ -38,6 +41,7 @@ async function getOrCreateCryptoKey() {
           true,
           ['encrypt', 'decrypt']
         );
+        cachedCryptoKey = key;
         resolve(key);
       } else {
         // Generate new key and save it
@@ -48,6 +52,7 @@ async function getOrCreateCryptoKey() {
         );
         const jwk = await crypto.subtle.exportKey('jwk', key);
         chrome.storage.local.set({ katbanMasterKey: JSON.stringify(jwk) }, () => {
+          cachedCryptoKey = key;
           resolve(key);
         });
       }
@@ -81,9 +86,23 @@ async function katbanEncrypt(plainText) {
 // Decrypt base64 format into plain text
 async function katbanDecrypt(encryptedString) {
   try {
-    // If it's old unencrypted data (doesn't contain the colon separator), just return it
-    if (!encryptedString.includes(':')) {
+    // Validate the encrypted string format before attempting decryption.
+    // The expected format is always "b64(iv):b64(ciphertext)".
+    //
+    // Old code returned the raw input as-is when no ':' was found, under the
+    // assumption it was "old unencrypted data". This is dangerous because:
+    //   (a) many real strings lack colons (numbers, words, etc.)
+    //   (b) it silently bypasses decryption if an entry is ever stored incorrectly
+    //
+    // The only sentinel we recognise without decryption is '[Sensitive Data Protected]',
+    // which is explicitly set by the copy handler and never encrypted.
+    if (encryptedString === '[Sensitive Data Protected]') {
       return encryptedString;
+    }
+    if (!encryptedString.includes(':')) {
+      // The string is in an unrecognised format. Return a safe display value
+      // instead of silently returning potentially sensitive plaintext.
+      return '[Legacy Data - Unable to Decrypt]';
     }
     
     const [ivB64, cipherB64] = encryptedString.split(':');
@@ -104,6 +123,8 @@ async function katbanDecrypt(encryptedString) {
   }
 }
 
-// Expose to global scope for background.js and popup.js
-globalThis.katbanEncrypt = katbanEncrypt;
-globalThis.katbanDecrypt = katbanDecrypt;
+// Expose to global scope explicitly for compatibility
+if (typeof self !== 'undefined') {
+  self.katbanEncrypt = katbanEncrypt;
+  self.katbanDecrypt = katbanDecrypt;
+}

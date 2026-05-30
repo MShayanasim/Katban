@@ -16,17 +16,18 @@ export default {
         headers: {
           "Access-Control-Allow-Origin": requestOrigin,
           "Access-Control-Allow-Methods": "POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          "Vary": "Origin"
         },
       });
     }
 
-    // Build CORS headers — only reflect back a chrome-extension origin
     const corsHeaders = isExtensionOrigin
       ? {
           "Access-Control-Allow-Origin": requestOrigin,
           "Access-Control-Allow-Methods": "POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          "Vary": "Origin"
         }
       : {};
 
@@ -39,52 +40,93 @@ export default {
       return new Response("Forbidden", { status: 403 });
     }
 
+    const KATBAN_SECRET = env.KATBAN_SECRET || "katban-secret-default-token-xyz789";
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader || authHeader !== `Bearer ${KATBAN_SECRET}`) {
+      return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+    }
+
     // ── Rate limiting (per real client IP) ──────────────────────────────────
-    // Cloudflare provides the real client IP in CF-Connecting-IP. Keying on this
-    // means every individual user gets their OWN budget, rather than all users
-    // sharing one pool (which was the flaw when keying on the extension origin).
-    if (!globalThis._rateLimitMap) {
-      globalThis._rateLimitMap = new Map();
-      globalThis._rateLimitCleanupCounter = 0;
-    }
-    const now = Date.now();
+    // We use Cloudflare KV for rate limiting so the counter persists across ALL
+    // edge nodes and isolate restarts. Without KV, each edge node gets its own
+    // independent counter, so a user can bypass limits by routing through a
+    // different region or waiting for a cold start.
+    //
+    // Fallback: if RATE_LIMIT_KV is not bound (e.g. during local development
+    // or before the KV namespace has been created), we fall back to a best-effort
+    // in-memory map. Note that the fallback is bypassable — set up KV for production.
     const WINDOW_MS = 60 * 1000;  // 1-minute sliding window
-    const MAX_REQUESTS = 20;      // 20 rant messages per minute per user
+    const MAX_REQUESTS = 20;      // 20 rant messages per minute per IP
+    const now = Date.now();
 
-    // CF-Connecting-IP is injected by Cloudflare's edge — it cannot be spoofed
-    // by the client because Cloudflare strips and re-adds it at the network level.
+    // CF-Connecting-IP is injected by Cloudflare's edge — cannot be spoofed
     const clientIP = request.headers.get("CF-Connecting-IP") || "unknown";
-    const record = globalThis._rateLimitMap.get(clientIP) || { count: 0, windowStart: now };
 
-    if (now - record.windowStart > WINDOW_MS) {
-      record.count = 0;
-      record.windowStart = now;
+    let rateLimited = false;
+
+    if (env.RATE_LIMIT_KV) {
+      // ── KV-based rate limiting (production path) ───────────────────────
+      // Key format: rl:<ip>   Value: JSON {count, windowStart}
+      // TTL is set to WINDOW_MS so Cloudflare auto-expires stale keys for us.
+      const kvKey = `rl:${clientIP}`;
+      let record = { count: 0, windowStart: now };
+      try {
+        const stored = await env.RATE_LIMIT_KV.get(kvKey, { type: 'json' });
+        if (stored && (now - stored.windowStart) <= WINDOW_MS) {
+          record = stored;
+        }
+        // else: window expired — start fresh
+      } catch (_) { /* KV read failure: allow the request through */ }
+
+      record.count += 1;
+
+      if (record.count > MAX_REQUESTS) {
+        rateLimited = true;
+      } else {
+        // Write back with a TTL equal to the window so KV auto-cleans expired keys.
+        // ctx.waitUntil ensures the write completes even after response is sent.
+        try {
+          ctx.waitUntil(
+            env.RATE_LIMIT_KV.put(kvKey, JSON.stringify(record), {
+              expirationTtl: Math.ceil(WINDOW_MS / 1000)
+            })
+          );
+        } catch (_) { /* KV write failure: allow the request through */ }
+      }
+    } else {
+      // ── In-memory fallback (development / no KV configured) ─────────────
+      if (!globalThis._rateLimitMap) {
+        globalThis._rateLimitMap = new Map();
+      }
+
+      const record = globalThis._rateLimitMap.get(clientIP) || { count: 0, windowStart: now };
+      if (now - record.windowStart > WINDOW_MS) {
+        record.count = 0;
+        record.windowStart = now;
+      }
+      record.count += 1;
+      globalThis._rateLimitMap.set(clientIP, record);
+
+      if (record.count > MAX_REQUESTS) {
+        rateLimited = true;
+      }
+
+      // Cleanup: delete ONLY expired entries on every request.
+      // This avoids the old bug where we wiped ALL counters at once when
+      // the map exceeded 10,000 entries, resetting every user's limit.
+      for (const [ip, rec] of globalThis._rateLimitMap) {
+        if (now - rec.windowStart > WINDOW_MS) {
+          globalThis._rateLimitMap.delete(ip);
+        }
+      }
     }
-    record.count += 1;
-    globalThis._rateLimitMap.set(clientIP, record);
 
-    if (record.count > MAX_REQUESTS) {
+    if (rateLimited) {
       return new Response(
         JSON.stringify({ error: "Too many requests. Please wait a moment before venting again." }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json",
             "Retry-After": "60" } }
       );
-    }
-
-    // Periodic cleanup: every 100 requests, purge expired entries to prevent memory leaks.
-    // Also hard-cap at 10,000 entries — if it's larger, something is wrong (attack), nuke it.
-    globalThis._rateLimitCleanupCounter += 1;
-    if (globalThis._rateLimitCleanupCounter >= 100) {
-      globalThis._rateLimitCleanupCounter = 0;
-      if (globalThis._rateLimitMap.size > 10000) {
-        globalThis._rateLimitMap.clear();
-      } else {
-        for (const [ip, rec] of globalThis._rateLimitMap) {
-          if (now - rec.windowStart > WINDOW_MS) {
-            globalThis._rateLimitMap.delete(ip);
-          }
-        }
-      }
     }
     // ── End rate limiting ─────────────────────────────────────────────────────
 
@@ -112,7 +154,9 @@ export default {
         );
       }
       const body = JSON.parse(bodyText);
-      requestMessages = body.messages || [];
+      // Ensure messages is always an array — sending an object/null instead
+      // would cause .slice() and .filter() to throw a TypeError (HTTP 500).
+      requestMessages = Array.isArray(body.messages) ? body.messages : [];
       if (body.rant) requestMessages = [{ role: 'user', content: body.rant }];
     } catch(e) {
       return new Response("Invalid JSON", { status: 400, headers: corsHeaders });
@@ -182,7 +226,10 @@ CRITICAL RULES:
 
       if (!groqRes.ok) throw new Error("Groq API failed: " + await groqRes.text());
       const groqData = await groqRes.json();
-      return new Response(JSON.stringify({ reply: groqData.choices[0].message.content }), {
+      const replyText = groqData.choices?.[0]?.message?.content;
+      if (!replyText) throw new Error("Unexpected Groq API response format: " + JSON.stringify(groqData));
+      
+      return new Response(JSON.stringify({ reply: replyText }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
       
@@ -204,7 +251,10 @@ CRITICAL RULES:
         });
         if (!geminiRes.ok) throw new Error("Gemini API failed: " + await geminiRes.text());
         const geminiData = await geminiRes.json();
-        return new Response(JSON.stringify({ reply: geminiData.candidates[0].content.parts[0].text }), {
+        const geminiReply = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!geminiReply) throw new Error("Unexpected Gemini API response format: " + JSON.stringify(geminiData));
+
+        return new Response(JSON.stringify({ reply: geminiReply }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       } catch (geminiError) {
