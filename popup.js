@@ -4,6 +4,18 @@
 // ──────────────────────────────────────────────
 
 const catSvg       = document.getElementById('cat-svg');
+
+// Universal Extension Invalidation Interceptor
+// Stops all interactions and safely closes the popup if the extension was updated/reloaded in the background
+['click', 'keydown', 'input', 'change', 'submit'].forEach(evt => {
+  document.addEventListener(evt, (e) => {
+    if (!chrome.runtime || !chrome.runtime.id) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      window.close();
+    }
+  }, true);
+});
 const pupils       = document.getElementById('pupils');
 const pupilLeft    = document.getElementById('pupil-left');
 const pupilRight   = document.getElementById('pupil-right');
@@ -95,6 +107,15 @@ if (btnLaser) {
   });
 }
 
+const btnTutorial = document.getElementById('btn-tutorial-replay');
+if (btnTutorial) {
+  btnTutorial.addEventListener('click', () => {
+    chrome.storage.local.set({ katbanOnboardingStep: 1 }, () => {
+      // Close popup so they can see the tutorial on the underlying page
+      window.close();
+    });
+  });
+}
 // ── Mascot Eye Tracking ────────────────────────
 document.addEventListener('mousemove', (e) => {
   const rect = mascotWrap.getBoundingClientRect();
@@ -267,29 +288,43 @@ btnStop.addEventListener('click', () => {
 });
 
 // Poll storage for timer display every second while popup is open
+let pollTimerInterval;
 function pollTimer() {
-  chrome.storage.local.get(['timerState', 'endTime', 'startTime', 'isUnlimited', 'customDuration'], (data) => {
-    if (chrome.runtime.lastError) return;
-    const timerState = data.timerState || 'idle';
-    const isUnlimited = data.isUnlimited === true;
+  if (!chrome.runtime || !chrome.runtime.id) {
+    if (pollTimerInterval) clearInterval(pollTimerInterval);
+    return;
+  }
+  
+  try {
+    chrome.storage.local.get(['timerState', 'endTime', 'startTime', 'isUnlimited', 'customDuration'], (data) => {
+      if (chrome.runtime.lastError) return;
+      const timerState = data.timerState || 'idle';
+      const isUnlimited = data.isUnlimited === true;
 
-    const customDur = data.customDuration;
+      const customDur = data.customDuration;
 
-    if (timerState === 'focus' || timerState === 'break') {
-      if (isUnlimited) {
-        const elapsed = Math.floor((Date.now() - (data.startTime || Date.now())) / 1000);
-        refreshTimerUI(timerState, elapsed, true, customDur);
+      if (timerState === 'focus' || timerState === 'break') {
+        if (isUnlimited) {
+          const elapsed = Math.floor((Date.now() - (data.startTime || Date.now())) / 1000);
+          refreshTimerUI(timerState, elapsed, true, customDur);
+        } else {
+          const remaining = Math.max(0, Math.ceil(((data.endTime || Date.now()) - Date.now()) / 1000));
+          refreshTimerUI(timerState, remaining, false, customDur);
+        }
       } else {
-        const remaining = Math.max(0, Math.ceil(((data.endTime || Date.now()) - Date.now()) / 1000));
-        refreshTimerUI(timerState, remaining, false, customDur);
+        refreshTimerUI('idle', 0, false, customDur);
       }
+    });
+  } catch (e) {
+    if (e.message && e.message.includes('Extension context invalidated')) {
+      if (pollTimerInterval) clearInterval(pollTimerInterval);
     } else {
-      refreshTimerUI('idle', 0, false, customDur);
+      console.error('pollTimer error:', e);
     }
-  });
+  }
 }
 pollTimer();
-setInterval(pollTimer, 1000);
+pollTimerInterval = setInterval(pollTimer, 1000);
 
 // ── Blocked Sites ───────────────────────────────
 chrome.storage.local.get(['blockedSites'], (data) => {
@@ -970,3 +1005,61 @@ rantInput.addEventListener('keydown', (e) => {
     submitRant();
   }
 });
+
+// ── ONBOARDING IFRAME LOGIC ──────────────────
+if (window.location.search.includes('onboarding=true')) {
+  document.body.classList.add('onboarding-active');
+
+  window.addEventListener('message', (event) => {
+    if (!event.data || event.data.type !== 'ONBOARDING_CMD') return;
+
+    const { action, target } = event.data;
+
+    // Remove existing highlights
+    document.querySelectorAll('.onboarding-highlight').forEach(el => el.classList.remove('onboarding-highlight'));
+
+    if (action === 'switchTab') {
+      const navBtn = document.querySelector(`.nav-btn[data-target="${target}"]`);
+      if (navBtn) navBtn.click();
+    }
+
+    if (action === 'highlight') {
+      let ring = document.getElementById('onboarding-focus-ring');
+      if (!ring) {
+        ring = document.createElement('div');
+        ring.id = 'onboarding-focus-ring';
+        document.body.appendChild(ring);
+      }
+      
+      if (!target) {
+        ring.style.display = 'none';
+        return;
+      }
+      
+      const elements = Array.from(document.querySelectorAll(target));
+      if (elements.length === 0) return;
+      
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      elements.forEach(el => {
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+        minX = Math.min(minX, rect.left);
+        minY = Math.min(minY, rect.top);
+        maxX = Math.max(maxX, rect.right);
+        maxY = Math.max(maxY, rect.bottom);
+      });
+      
+      if (minX === Infinity) return;
+      
+      const padding = 6;
+      ring.style.left = `${minX - padding}px`;
+      ring.style.top = `${minY - padding}px`;
+      ring.style.width = `${(maxX - minX) + padding * 2}px`;
+      ring.style.height = `${(maxY - minY) + padding * 2}px`;
+      ring.style.display = 'block';
+
+      const centerY = minY + (maxY - minY) / 2;
+      window.parent.postMessage({ type: 'ONBOARDING_REPLY', action: 'alignBubble', centerY }, '*');
+    }
+  });
+}

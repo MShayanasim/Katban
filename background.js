@@ -143,7 +143,7 @@ function setBrainState(brain, newState) {
 
 // ── Dance / Typing Logic ──────────────────────
 function checkFocusAndRevert(brain) {
-  if (brain.state === 'peeking' || brain.state === 'surprised' || brain.state === 'judging') {
+  if (brain.state === 'peeking' || brain.state === 'surprised' || brain.state === 'judging' || brain.state === 'dancing' || brain.state === 'exhausted') {
     setBrainState(brain, null);
   }
   if (brain.id === 'global') {
@@ -196,7 +196,7 @@ function startDanceLoop(brain) {
 }
 
 // ── Chrome Init & Alarms ──────────────────────
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
   chrome.storage.local.get(null, (existing) => {
     const defaults = {
       timerState: 'idle',
@@ -213,8 +213,8 @@ chrome.runtime.onInstalled.addListener(() => {
       catStyle: 'primary',
       focusSessions: [],
       muteOverlaySound: false  // Missing default — new installs need this to avoid undefined toggle state
-
     };
+
     const toSet = {};
     for (const key in defaults) {
       if (existing[key] === undefined) {
@@ -225,9 +225,29 @@ chrome.runtime.onInstalled.addListener(() => {
     if (existing.timeRemaining !== undefined) {
       chrome.storage.local.remove('timeRemaining');
     }
+    
+    if (details.reason === 'install') {
+      toSet.katbanOnboardingStep = 1;
+    }
+
     if (Object.keys(toSet).length > 0) {
       chrome.storage.local.set(toSet);
     }
+  });
+
+  // Inject into all existing HTTP/HTTPS tabs
+  chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] }, (tabs) => {
+    tabs.forEach((tab) => {
+      if (!tab.id) return;
+      chrome.scripting.insertCSS({
+        target: { tabId: tab.id },
+        files: ['content.css']
+      }).catch(() => {});
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content.js']
+      }).catch(() => {});
+    });
   });
 });
 
@@ -365,9 +385,13 @@ async function processCopyQueue() {
         if (item.text === '[Sensitive Data Protected]') {
           itemPlaintext = '[Sensitive Data Protected]';
         } else {
-          itemPlaintext = await katbanDecrypt(item.text);
+          try {
+            itemPlaintext = await katbanDecrypt(item.text);
+          } catch (e) {
+            itemPlaintext = null; // Skip this item if decryption fails
+          }
         }
-        if (itemPlaintext === msg.text) {
+        if (itemPlaintext && itemPlaintext === msg.text) {
           setBrainState(getBrain(tabId), 'judging');
           chrome.tabs.sendMessage(tabId, { type: 'CLIPBOARD_DUPLICATE' }).catch(() => {});
           return resolve();

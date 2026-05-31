@@ -489,6 +489,13 @@ body::-webkit-scrollbar-thumb { background: var(--border); }
   background: var(--surface-2);
 }
 
+.btn-tutorial-replay {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+}
+
 .btn-settings-open {
   position: absolute;
   top: 10px;
@@ -1135,3 +1142,14 @@ body.cat-style-custom-tabby {
 .mood-happy .mouth-smile { display: none !important; }
 .mood-happy .mouth-happy-real { display: block !important; }
 .mood-happy .pupil { height: 2px !important; transform: translateY(4px); transform-box: fill-box; }
+
+/* ── ONBOARDING HIGHLIGHT ── */
+#onboarding-focus-ring {
+  position: fixed;
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.75), inset 0 0 0 2px #ffd700, 0 0 15px rgba(255, 215, 0, 0.8);
+  pointer-events: none;
+  z-index: 2147483647;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  display: none;
+}

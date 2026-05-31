@@ -200,8 +200,9 @@
           <path d="M 22 75 Q 50 90 78 75" stroke="var(--cat-collar-color, transparent)" stroke-width="5" fill="none" stroke-linecap="round"/>
           <circle cx="50" cy="83" r="5" fill="var(--cat-bell-color, transparent)"/>
 
-          <rect x="26" y="52" width="18" height="14" fill="var(--cat-eye-bg, #ffffff)" stroke="var(--cat-stroke, #777)" stroke-width="2" shape-rendering="crispEdges"/>
-          <rect x="56" y="52" width="18" height="14" fill="var(--cat-eye-bg, #ffffff)" stroke="var(--cat-stroke, #777)" stroke-width="2" shape-rendering="crispEdges"/>
+          <rect class="k-eye-bg" x="26" y="52" width="18" height="14" fill="var(--cat-eye-bg, #ffffff)" stroke="var(--cat-stroke, #777)" stroke-width="2" shape-rendering="crispEdges"/>
+          <rect class="k-eye-bg" x="56" y="52" width="18" height="14" fill="var(--cat-eye-bg, #ffffff)" stroke="var(--cat-stroke, #777)" stroke-width="2" shape-rendering="crispEdges"/>
+          <path class="k-eye-closed" d="M 28 60 Q 35 52 42 60 M 58 60 Q 65 52 72 60" stroke="var(--cat-stroke, #777)" stroke-width="2" fill="none" stroke-linecap="round" style="display: none;"/>
 
           <g id="${id_prefix}pupils" clip-path="url(#${id_prefix}eyes-clip)">
             <rect class="k-pupil" id="${id_prefix}pupil-l" x="33" y="54" width="4" height="10" fill="var(--cat-pupil, #333)" shape-rendering="crispEdges"/>
@@ -216,6 +217,7 @@
           </g>
 
           <path class="k-mouth-smile" d="M 44 74 Q 47 78 50 75 Q 53 78 56 74" stroke="var(--cat-stroke, #777)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path class="k-mouth-happy-real" d="M 43 73 Q 47 80 50 76 Q 53 80 57 73" stroke="var(--cat-stroke, #777)" stroke-width="2" fill="none" stroke-linecap="round" style="display: none;"/>
           <rect class="k-mouth-scared" x="46" y="74" width="8" height="6" fill="var(--cat-pupil, #333)" shape-rendering="crispEdges" opacity="0"/>
           <ellipse class="k-mouth-surprised" cx="50" cy="76" rx="2" ry="3" fill="var(--cat-pupil, #333)" opacity="0"/>
           <ellipse class="k-mouth-exhausted" cx="50" cy="77" rx="3" ry="5" fill="var(--cat-pupil, #333)" opacity="0"/>
@@ -227,6 +229,13 @@
           <line x1="10" y1="72" x2="28" y2="72" stroke="var(--cat-whiskers, #999)" stroke-width="1"/>
           <line x1="88" y1="66" x2="72" y2="68" stroke="var(--cat-whiskers, #999)" stroke-width="1"/>
           <line x1="90" y1="72" x2="72" y2="72" stroke="var(--cat-whiskers, #999)" stroke-width="1"/>
+          
+          <g class="k-hearts" style="display: none;">
+            <text x="80" y="40" fill="#ff6b81" font-size="16" font-family="Arial" class="k-anim-heart-1">❤</text>
+            <text x="70" y="20" fill="#ff6b81" font-size="20" font-family="Arial" class="k-anim-heart-2">❤</text>
+            <text x="10" y="30" fill="#ff6b81" font-size="18" font-family="Arial" class="k-anim-heart-3">❤</text>
+            <text x="20" y="10" fill="#ff6b81" font-size="14" font-family="Arial" class="k-anim-heart-4">❤</text>
+          </g>
           
           <!-- Nightcap -->
           <g class="k-nightcap" opacity="0">
@@ -371,12 +380,26 @@
     const measureSpan = document.getElementById('katban-measure-span');
     if (measureSpan) measureSpan.remove();
     
+    // Cleanup onboarding and interactive elements
+    const oOverlay = document.getElementById('katban-onboarding-overlay');
+    if (oOverlay) oOverlay.remove();
+    const oIframe = document.getElementById('katban-onboarding-iframe');
+    if (oIframe) oIframe.remove();
+    const oBubble = document.getElementById('katban-onboarding-bubble');
+    if (oBubble) oBubble.remove();
+    const tToast = document.getElementById('katban-treat-toast');
+    if (tToast) tToast.remove();
+    
+    // Remove dynamically created objects that might not have IDs
+    document.querySelectorAll('.katban-dvd-clone, .katban-treat-overlay, .katban-treat, .katban-laser-dot, .katban-onboarding-heart').forEach(el => el.remove());
+    
     try {
       chrome.runtime.onMessage.removeListener(messageListener);
     } catch (e) {}
     
     // Clear all timers and intervals to prevent stale callbacks
     clearInterval(midnightInterval);
+    if (typeof heartbeatInterval !== 'undefined') clearInterval(heartbeatInterval);
     if (typeof scrollTimer !== 'undefined') clearTimeout(scrollTimer);
     if (typeof defTimeout !== 'undefined') clearTimeout(defTimeout);
     if (typeof focusoutTimer !== 'undefined') clearTimeout(focusoutTimer);
@@ -405,6 +428,19 @@
 
   // Request initial sync
   safeSend({ type: 'CAT_EVENT', event: 'REQUEST_SYNC' });
+  
+  // Heartbeat to detect extension removal/reload instantly
+  const heartbeatInterval = setInterval(() => {
+    try {
+      if (isInvalidated) return;
+      chrome.runtime.getManifest();
+    } catch (e) {
+      if (e.message && e.message.includes('Extension context invalidated')) {
+        clearInterval(heartbeatInterval);
+        unloadListener();
+      }
+    }
+  }, 1000);
 
   // ── USER ACTIVITY ─────────────────────────
   let lastActivityTime = 0;
@@ -1440,6 +1476,9 @@
     if (isInvalidated || !pageCatOn || catState === 'peeking' || catState === 'judging') return;
     if (!e.key || e.key.length !== 1) return; // Safely ignore autofill/synthetic events
     
+    // Only trigger typing if focused inside a text field or contenteditable element
+    if (!hasLocalActiveInput()) return;
+    
     safeSend({ type: 'CAT_EVENT', event: 'TYPING' });
 
     // Spawn floating letter locally for immediate visual feedback
@@ -1457,4 +1496,176 @@
       setTimeout(() => letter.remove(), 1000);
     }
   }, { signal: listenerSignal });
+
+  // ── ONBOARDING TUTORIAL ──────────────────────
+  let onboardingOverlay = null;
+  let onboardingIframe = null;
+  let onboardingBubble = null;
+  
+  function updateOnboardingUI(step) {
+    if (step <= 0 || step > 7) {
+      if (onboardingOverlay) {
+        onboardingOverlay.remove();
+        onboardingOverlay = null;
+      }
+      if (onboardingBubble) {
+        onboardingBubble.remove();
+        onboardingBubble = null;
+      }
+      if (onboardingIframe) {
+        onboardingIframe.remove();
+        onboardingIframe = null;
+      }
+      applyCatState(null); // resume normal
+      cornerCat.style.zIndex = '';
+      cornerCat.classList.remove('mood-happy', 'katban-visible');
+      return;
+    }
+
+    if (!onboardingOverlay) {
+      onboardingOverlay = document.createElement('div');
+      onboardingOverlay.className = 'katban-onboarding-overlay';
+      
+      const skipBtn = document.createElement('button');
+      skipBtn.className = 'katban-btn-skip';
+      skipBtn.textContent = 'Skip Tutorial';
+      skipBtn.onclick = (e) => {
+        e.stopPropagation();
+        chrome.storage.local.set({ katbanOnboardingStep: 0 });
+      };
+      onboardingOverlay.appendChild(skipBtn);
+      
+      onboardingBubble = document.createElement('div');
+      onboardingBubble.className = 'katban-dialogue-bubble';
+      document.body.appendChild(onboardingBubble);
+      
+      onboardingIframe = document.createElement('iframe');
+      onboardingIframe.className = 'katban-popup-iframe';
+      onboardingIframe.src = chrome.runtime.getURL('popup.html?onboarding=true');
+      onboardingIframe.style.display = 'none';
+      onboardingIframe.style.pointerEvents = 'none'; // Prevent clicks inside iframe
+      document.body.appendChild(onboardingIframe);
+      
+      // Advance step on click anywhere on overlay
+      onboardingOverlay.onclick = () => {
+        chrome.storage.local.get(['katbanOnboardingStep'], (data) => {
+          let nextStep = (data.katbanOnboardingStep || 1) + 1;
+          chrome.storage.local.set({ katbanOnboardingStep: nextStep });
+        });
+      };
+      
+      document.body.appendChild(onboardingOverlay);
+      
+      // Bring cat above overlay
+      cornerCat.style.zIndex = '2147483647';
+      cornerCat.classList.remove('katban-hidden');
+      
+      // Dynamic vertical alignment listener
+      window.addEventListener('message', (e) => {
+        if (e.data && e.data.type === 'ONBOARDING_REPLY' && e.data.action === 'alignBubble') {
+          if (onboardingBubble && onboardingIframe) {
+            const iframeRect = onboardingIframe.getBoundingClientRect();
+            const targetY = iframeRect.top + e.data.centerY;
+            onboardingBubble.style.bottom = 'auto';
+            onboardingBubble.style.top = `${targetY - (onboardingBubble.offsetHeight / 2)}px`;
+          }
+        }
+      }, { signal: listenerSignal });
+    }
+
+    // Set fixed state for cat during onboarding so it doesn't distract
+    applyCatState(null); // reset animation
+    cornerCat.classList.add('katban-visible'); // keep visible
+
+    switch(step) {
+      case 1:
+        onboardingIframe.style.display = 'none';
+        onboardingBubble.className = 'katban-dialogue-bubble point-cat';
+        onboardingBubble.style.top = 'auto'; // clear dynamic top
+        onboardingBubble.innerHTML = "Hi! I'm Katban, your interactive companion. You can open me anytime with <strong>Ctrl+Shift+K</strong> (Cmd+Shift+K on Mac). Let me show you around. Click to continue.";
+        break;
+      case 2:
+        onboardingIframe.style.display = 'block';
+        onboardingBubble.className = 'katban-dialogue-bubble point-iframe';
+        onboardingBubble.textContent = "This is your control center. Here you can start a Focus Session to block distracting websites.";
+        setTimeout(() => {
+          if (onboardingIframe && onboardingIframe.contentWindow) {
+            onboardingIframe.contentWindow.postMessage({ type: 'ONBOARDING_CMD', action: 'switchTab', target: 'tab-home' }, '*');
+            onboardingIframe.contentWindow.postMessage({ type: 'ONBOARDING_CMD', action: 'highlight', target: '#pomodoro-section' }, '*');
+          }
+        }, 100);
+        break;
+      case 3:
+        onboardingIframe.style.display = 'block';
+        onboardingBubble.className = 'katban-dialogue-bubble point-iframe';
+        onboardingBubble.textContent = "You can keep track of what you are doing in the Kat-ban board.";
+        setTimeout(() => {
+          if (onboardingIframe && onboardingIframe.contentWindow) {
+            onboardingIframe.contentWindow.postMessage({ type: 'ONBOARDING_CMD', action: 'switchTab', target: 'tab-tasks' }, '*');
+            onboardingIframe.contentWindow.postMessage({ type: 'ONBOARDING_CMD', action: 'highlight', target: '#tab-tasks' }, '*');
+          }
+        }, 100);
+        break;
+      case 4:
+        onboardingIframe.style.display = 'block';
+        onboardingBubble.className = 'katban-dialogue-bubble point-iframe';
+        onboardingBubble.textContent = "Here you can view your Focus Stats and manage your Blocked Sites list.";
+        setTimeout(() => {
+          if (onboardingIframe && onboardingIframe.contentWindow) {
+            onboardingIframe.contentWindow.postMessage({ type: 'ONBOARDING_CMD', action: 'switchTab', target: 'tab-stats' }, '*');
+            onboardingIframe.contentWindow.postMessage({ type: 'ONBOARDING_CMD', action: 'highlight', target: '#tab-stats' }, '*');
+          }
+        }, 100);
+        break;
+      case 5:
+        onboardingIframe.style.display = 'block';
+        onboardingBubble.className = 'katban-dialogue-bubble point-iframe';
+        onboardingBubble.textContent = "I also keep your copied text safe and sound right here in the Clipboard!";
+        setTimeout(() => {
+          if (onboardingIframe && onboardingIframe.contentWindow) {
+            onboardingIframe.contentWindow.postMessage({ type: 'ONBOARDING_CMD', action: 'switchTab', target: 'tab-clipboard' }, '*');
+            onboardingIframe.contentWindow.postMessage({ type: 'ONBOARDING_CMD', action: 'highlight', target: '#clipboard-section' }, '*');
+          }
+        }, 100);
+        break;
+      case 6:
+        onboardingIframe.style.display = 'block';
+        onboardingBubble.className = 'katban-dialogue-bubble point-iframe';
+        onboardingBubble.textContent = "Up here you can give me Treats, play with Lasers, tweak Settings, or Vent to me at the bottom!";
+        setTimeout(() => {
+          if (onboardingIframe && onboardingIframe.contentWindow) {
+            onboardingIframe.contentWindow.postMessage({ type: 'ONBOARDING_CMD', action: 'highlight', target: '.btn-treat-open, .btn-laser-open, .btn-settings-open, #btn-rant-toggle-main' }, '*');
+          }
+        }, 100);
+        break;
+      case 7:
+        onboardingIframe.style.display = 'none';
+        onboardingBubble.className = 'katban-dialogue-bubble point-cat';
+        onboardingBubble.style.top = 'auto'; // clear dynamic top
+        onboardingBubble.textContent = "Enjoy it! Click anywhere to close.";
+        cornerCat.classList.add('mood-happy');
+        
+        // Spawn hearts around the cat natively via CSS/SVG
+        // (Handled by .mood-happy showing .k-hearts)
+        break;
+    }
+  }
+
+  // Handle storage changes to sync tabs
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.katbanOnboardingStep) {
+      if (isInvalidated) return;
+      const newStep = changes.katbanOnboardingStep.newValue || 0;
+      updateOnboardingUI(newStep);
+    }
+  });
+
+  // Initial Check
+  chrome.storage.local.get(['katbanOnboardingStep'], (data) => {
+    if (isInvalidated) return;
+    if (data.katbanOnboardingStep > 0) {
+      updateOnboardingUI(data.katbanOnboardingStep);
+    }
+  });
+
 })();

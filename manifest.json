@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Katban",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Your interactive cat companion. Features a Pomodoro timer, site blocker, AI support chat, tasks, and a secure clipboard manager.",
   "action": {
     "default_popup": "popup.html",
@@ -41,6 +41,19 @@
       "description": "Open Katban Popup"
     }
   },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "popup.html",
+        "popup.css",
+        "popup.js",
+        "crypto.js"
+      ],
+      "matches": [
+        "*://*/*"
+      ]
+    }
+  ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self' https://katban-ai-worker.shayanasim-dev.workers.dev https://api.dictionaryapi.dev;"
   }
